@@ -214,3 +214,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Node / React
+front-end/node_modules/
+
+# VScode config files
+.vscode/
