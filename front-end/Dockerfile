@@ -1,18 +1,16 @@
-# Base image node
-FROM node:14
-# set working directory
+# Base node image
+FROM node:20-alpine
+# Set working directory
 WORKDIR /app
-# copy package info
+# Install dependencies
 COPY package*.json ./
-#install npm
-RUN npm install
-# copy all files to working directory
+RUN npm ci
+# Copy source code and build
 COPY . .
-# build the app
 RUN npm run build
-# serve the app
+# Install serve
 RUN npm install -g serve
-# expose port 3000
+# Expose port
 EXPOSE 3000
-# serve the app
-CMD ["serve", "-s", "build"]
+# Start the app
+CMD ["serve", "-s", "build", "-l", "3000"]
