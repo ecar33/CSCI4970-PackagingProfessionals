@@ -7,10 +7,8 @@ COPY package*.json ./
 RUN npm ci
 # Copy source code and build
 COPY . .
-RUN npm run build
-# Install serve
-RUN npm install -g serve
-# Expose port
+# Make CRA dev server listen on all interfaces inside container
+ENV HOST=0.0.0.0
 EXPOSE 3000
 # Start the app
 CMD ["npm", "start"]
