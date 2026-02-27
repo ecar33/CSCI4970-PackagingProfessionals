@@ -11,5 +11,5 @@
     depends_on:
       - backend
 # Need to map volumes for persistent data storage for the backend
-    #volumes:
-      #- backend-data:/app/data
+    volumes:
+      - backend-data:/docker/IMS

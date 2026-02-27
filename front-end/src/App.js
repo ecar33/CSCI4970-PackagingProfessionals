@@ -15,7 +15,7 @@ function App() {
     <div className="App">
       <header className="App-header">
 
-        ... no changes in this part ...
+        The UPS Store #4166 Inventory Management System Demo
 
         <p>The current status is: {currentStatus}.</p>
       </header>
