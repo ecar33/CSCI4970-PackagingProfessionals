@@ -1,5 +1,6 @@
 from flask import Flask, jsonify
 import sqlite3
+import logging
 from ocr import extract_text_from_pdf, process_all_orders
 from watcher import start_watcher
 
