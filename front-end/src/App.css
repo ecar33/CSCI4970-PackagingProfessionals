@@ -1,38 +1,228 @@
-.App {
-  text-align: center;
+:root {
+  --ink: #1f2a37;
+  --brand: #0e7a6a;
+  --brand-dark: #085d51;
+  --accent: #f59e0b;
+  --card: #fefefe;
+  --line: #d7dde4;
+  --danger: #c53030;
+  --warn: #b7791f;
+  --safe: #2f855a;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+* {
+  box-sizing: border-box;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
+body {
+  margin: 0;
+  font-family: "Avenir Next", "Trebuchet MS", "Segoe UI", sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 15% 12%, #f3fff9 0%, transparent 38%),
+    radial-gradient(circle at 87% 92%, #fff4d9 0%, transparent 34%),
+    linear-gradient(180deg, #edf7f4 0%, #f7f8fa 60%, #eef3f8 100%);
   min-height: 100vh;
+}
+
+.screen {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 24px 18px 42px;
+  animation: fadeUp 300ms ease-out;
+}
+
+.topBar {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  flex-wrap: wrap;
+  gap: 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: 0 8px 26px rgba(30, 46, 71, 0.07);
 }
 
-.App-link {
-  color: #61dafb;
+.eyebrow {
+  margin: 0 0 4px;
+  font-weight: 700;
+  color: #4a5568;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
-@keyframes App-logo-spin {
+h1 {
+  margin: 0;
+  font-size: 1.7rem;
+}
+
+.navMenu {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.navMenu button {
+  border: 1px solid var(--line);
+  background: #fff;
+  padding: 8px 12px;
+  border-radius: 9px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.navMenu .active {
+  background: #d9f7ef;
+  border-color: #84d8c7;
+  color: var(--brand-dark);
+}
+
+.controls {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: minmax(220px, 1.4fr) repeat(3, minmax(140px, 1fr)) auto;
+  gap: 10px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+  box-shadow: 0 8px 26px rgba(30, 46, 71, 0.07);
+}
+
+.controls input,
+.controls select {
+  width: 100%;
+  border: 1px solid #cfd6df;
+  border-radius: 10px;
+  padding: 10px 11px;
+  font-size: 0.95rem;
+  background: #fff;
+}
+
+.controls input:focus,
+.controls select:focus {
+  outline: 2px solid #9ae3d7;
+  border-color: var(--brand);
+}
+
+.exportBtn,
+.editBtn {
+  border: none;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.exportBtn {
+  background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+  color: #fff;
+  white-space: nowrap;
+}
+
+.tableCard {
+  margin-top: 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: auto;
+  box-shadow: 0 8px 26px rgba(30, 46, 71, 0.07);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 980px;
+}
+
+th,
+td {
+  border-bottom: 1px solid #ebeff3;
+  padding: 11px 12px;
+  text-align: left;
+  font-size: 0.92rem;
+}
+
+th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f8fbfd;
+  font-size: 0.86rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #425466;
+}
+
+.warningRow {
+  background: #fffbef;
+}
+
+.status {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.status.healthy {
+  color: var(--safe);
+  background: #d8f3e3;
+}
+
+.status.low {
+  color: var(--warn);
+  background: #ffefcf;
+}
+
+.status.critical {
+  color: var(--danger);
+  background: #ffdede;
+}
+
+.editBtn {
+  background: #eff3f8;
+  color: #31465f;
+}
+
+.emptyState {
+  margin: 0;
+  padding: 16px;
+  text-align: center;
+  color: #607086;
+}
+
+@keyframes fadeUp {
   from {
-    transform: rotate(0deg);
+    opacity: 0;
+    transform: translateY(10px);
   }
   to {
-    transform: rotate(360deg);
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 1020px) {
+  .controls {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .controls {
+    grid-template-columns: 1fr;
+  }
+
+  .topBar {
+    align-items: flex-start;
+  }
+
+  h1 {
+    font-size: 1.35rem;
   }
 }
