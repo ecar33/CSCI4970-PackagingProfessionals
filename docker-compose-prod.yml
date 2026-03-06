@@ -3,6 +3,10 @@
     image: ghcr.io/raycronin/packaging-professionals-capstone-backend:latest
     ports:
       - "5000:5000"
+    volumes:
+        - backend-data:/docker/IMS
+        - /Order-Summaries:/app/orders
+        - /Count-Sheets:/app/counts
 
   frontend:
     image: ghcr.io/raycronin/packaging-professionals-capstone-frontend:latest
@@ -12,4 +16,4 @@
       - backend
 # Need to map volumes for persistent data storage for the backend
     volumes:
-      - backend-data:/docker/IMS
+      backend-data:

@@ -5,6 +5,10 @@
     container_name: backend
     ports:
       - "5000:5000"
+    volumes:
+      - backend-data:/home/serveruser/capstone/data #docker managed volume for DB
+      - /home/serveruser/capstone/orders:/app/orders #host directory for order summaries
+      - /home/serveruser/capstone/count:/app/counts #host directory for count sheets
     networks:
       - app-network
 
@@ -24,4 +28,7 @@
 networks:
   app-network:
     driver: bridge
-      
+    
+volumes:
+  backend-data:
+    
