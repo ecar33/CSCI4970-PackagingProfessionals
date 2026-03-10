@@ -4,7 +4,7 @@ import time
 import logging
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-from ocr import extract_text_from_pdf
+from ocr import extract_text_from_pdf, parse_boxes_from_text
 
 logger = logging.getLogger(__name__)
 
@@ -29,9 +29,10 @@ class OrderFileHandler(FileSystemEventHandler):
 
         try:
             text = extract_text_from_pdf(event.src_path)
+            boxes = parse_boxes_from_text(text)
             filename = os.path.basename(event.src_path)
             logger.info(f"OCR complete for {filename}")
-            self.callback(filename, text)
+            self.callback(filename, text, boxes)
         except Exception as e:
             logger.error(f"OCR failed for {event.src_path}: {e}")
 
