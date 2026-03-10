@@ -1,7 +1,8 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 import sqlite3
 import logging
 from ocr import extract_text_from_pdf, process_all_orders, parse_boxes_from_text, process_order_pdf
+from csv_parser import parse_sales_csv
 from watcher import start_watcher
 
 logging.basicConfig(level=logging.INFO)
@@ -48,6 +49,18 @@ def ocr_boxes(filename):
         return jsonify(error="File not found"), 404
     result = process_order_pdf(filepath)
     return jsonify(result)
+
+@app.post("/api/csv/upload")
+def upload_csv():
+    """Accept a CSV file upload and return parsed sales data as JSON."""
+    if "file" not in request.files:
+        return jsonify(error="No file provided"), 400
+    file = request.files["file"]
+    if not file.filename.lower().endswith(".csv"):
+        return jsonify(error="File must be a .csv"), 400
+    items = parse_sales_csv(file.stream)
+    logger.info(f"Parsed uploaded CSV {file.filename} ({len(items)} items)")
+    return jsonify({"file": file.filename, "items": items})
 
 if __name__ == "__main__":
     # Start the file watcher before running the Flask app
