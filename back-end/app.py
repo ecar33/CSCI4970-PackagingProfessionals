@@ -1,8 +1,7 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify
 import sqlite3
 import logging
-from ocr import extract_text_from_pdf, process_all_orders, parse_boxes_from_text, process_order_pdf
-from csv_parser import parse_sales_csv
+from ocr import extract_text_from_pdf, process_all_orders
 from watcher import start_watcher
 
 logging.basicConfig(level=logging.INFO)
@@ -13,17 +12,16 @@ app = Flask(__name__)
 ORDERS_DIR = "/app/orders"
 # Store OCR results in memory (replace with DB later)
 ocr_results = {}
-
-def on_new_order(filename, text, boxes):
+def on_new_order(filename, text):
     """Callback invoked when a new PDF is detected and processed."""
-    ocr_results[filename] = {"text": text, "boxes": boxes}
-    logger.info(f"Stored OCR result for {filename} ({len(text)} chars, {len(boxes)} box types)")
-    # TODO: update SQL inventory table
-
+    ocr_results[filename] = text
+    logger.info(f"Stored OCR result for {filename} ({len(text)} chars)")
+    # TODO: parse text and update SQL inventory table here
+    
 @app.get("/api/health")
 def health():
     return jsonify(status="ok")
-
+    
 @app.get("/api/ocr/orders")
 def ocr_all_orders():
     """Run OCR on every PDF in the orders volume."""
@@ -39,28 +37,6 @@ def ocr_single_order(filename):
         return jsonify(error="File not found"), 404
     text = extract_text_from_pdf(filepath)
     return jsonify(filename=filename, text=text)
-
-@app.get("/api/ocr/boxes/<filename>")
-def ocr_boxes(filename):
-    """Run OCR on a specific PDF and return only parsed box data."""
-    import os
-    filepath = os.path.join(ORDERS_DIR, filename)
-    if not os.path.isfile(filepath):
-        return jsonify(error="File not found"), 404
-    result = process_order_pdf(filepath)
-    return jsonify(result)
-
-@app.post("/api/csv/upload")
-def upload_csv():
-    """Accept a CSV file upload and return parsed sales data as JSON."""
-    if "file" not in request.files:
-        return jsonify(error="No file provided"), 400
-    file = request.files["file"]
-    if not file.filename.lower().endswith(".csv"):
-        return jsonify(error="File must be a .csv"), 400
-    items = parse_sales_csv(file.stream)
-    logger.info(f"Parsed uploaded CSV {file.filename} ({len(items)} items)")
-    return jsonify({"file": file.filename, "items": items})
 
 if __name__ == "__main__":
     # Start the file watcher before running the Flask app
