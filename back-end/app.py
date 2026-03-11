@@ -20,22 +20,22 @@ ocr_results = {}
 def increment_inventory_from_boxes(boxes):
     """Increase inventory from parsed OCR box counts."""
     for box in boxes:
-        sku = box.get("box_size")
+        box_size = box.get("box_size")
         count = int(box.get("count", 0))
-        if not sku or count <= 0:
+        if not box_size or count <= 0:
             continue
 
-        item = db.session.get(Inventory, sku)
+        # Search for an existing inventory row whose description contains the box size
+        item = db.session.query(Inventory).filter(
+            Inventory.description.ilike(f"%{box_size}%")
+        ).first()
+
         if item is None:
-            item = Inventory(
-                sku=sku,
-                description=f"{sku} box",
-                item_quantity=count,
-                return_quantity=0,
-            )
-            db.session.add(item)
-        else:
-            item.item_quantity += count
+            logger.warning(f"No inventory item found with '{box_size}' in description — skipping.")
+            continue
+
+        item.item_quantity += count
+        logger.info(f"Incremented SKU {item.sku} ({item.description}) by {count}")
 
     db.session.commit()
 
