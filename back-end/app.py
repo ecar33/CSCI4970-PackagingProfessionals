@@ -1,14 +1,17 @@
 from flask import Flask, jsonify, request
-import sqlite3
 import logging
 from ocr import extract_text_from_pdf, process_all_orders, parse_boxes_from_text, process_order_pdf
 from csv_parser import parse_sales_csv
 from watcher import start_watcher
+from databasemake import init_db
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///inv.db"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+init_db(app)
 
 ORDERS_DIR = "/app/orders"
 # Store OCR results in memory (replace with DB later)
