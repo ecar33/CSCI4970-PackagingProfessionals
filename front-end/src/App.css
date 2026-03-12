@@ -83,7 +83,7 @@ h1 {
 .controls {
   margin-top: 14px;
   display: grid;
-  grid-template-columns: minmax(220px, 1.4fr) repeat(3, minmax(140px, 1fr)) auto;
+  grid-template-columns: minmax(220px, 1.4fr) repeat(2, minmax(140px, 1fr)) auto;
   gap: 10px;
   background: var(--card);
   border: 1px solid var(--line);
@@ -157,6 +157,18 @@ th {
   color: #425466;
 }
 
+.sortButton {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  font-weight: 700;
+  color: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+}
+
 .warningRow {
   background: #fffbef;
 }
@@ -187,6 +199,20 @@ th {
 .editBtn {
   background: #eff3f8;
   color: #31465f;
+}
+
+.manualOverride {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.manualOverride input {
+  width: 90px;
+  border: 1px solid #cfd6df;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 0.92rem;
 }
 
 .emptyState {

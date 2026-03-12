@@ -1,109 +1,208 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import './App.css';
 
-const inventorySeed = [
-  {
-    sku: 'BX-12X12X12',
-    product: 'Standard Shipping Box 12x12x12',
-    vendor: 'UPS Supply',
-    onHand: 84,
-    reorderPoint: 60,
-    last30Used: 42,
-    location: 'Aisle A / Rack 2',
-    status: 'Healthy',
-  },
-  {
-    sku: 'BX-18X18X16',
-    product: 'Moving Box 18x18x16',
-    vendor: 'UPS Supply',
-    onHand: 27,
-    reorderPoint: 35,
-    last30Used: 51,
-    location: 'Backroom Pallet 1',
-    status: 'Low',
-  },
-  {
-    sku: 'MAT-BUBBLE-750',
-    product: 'Bubble Cushioning Roll 750 ft',
-    vendor: 'Uline',
-    onHand: 9,
-    reorderPoint: 8,
-    last30Used: 6,
-    location: 'Aisle C / Shelf 4',
-    status: 'Healthy',
-  },
-  {
-    sku: 'MAT-TAPE-2IN',
-    product: '2in Packing Tape',
-    vendor: '3M Distributor',
-    onHand: 14,
-    reorderPoint: 20,
-    last30Used: 33,
-    location: 'Front Counter Bin',
-    status: 'Low',
-  },
-  {
-    sku: 'MAT-KRAFT-30LB',
-    product: 'Kraft Packing Paper 30 lb',
-    vendor: 'UPS Supply',
-    onHand: 41,
-    reorderPoint: 25,
-    last30Used: 18,
-    location: 'Aisle B / Shelf 1',
-    status: 'Healthy',
-  },
-  {
-    sku: 'MAILER-POLY-L',
-    product: 'Large Poly Mailer',
-    vendor: 'Uline',
-    onHand: 6,
-    reorderPoint: 15,
-    last30Used: 24,
-    location: 'Aisle C / Bin 7',
-    status: 'Critical',
-  },
-];
+const STATUS_ORDER = ['Critical', 'Low', 'Healthy'];
+
+function sizeFromDescription(description) {
+  const normalized = description.toLowerCase();
+
+  if (normalized.includes('24x24x24') || normalized.includes('20x20x12') || normalized.includes('18x18x18')) {
+    return 'Large';
+  }
+
+  if (normalized.includes('12x12x12') || normalized.includes('10x10x10') || normalized.includes('08x08x08')) {
+    return 'Small';
+  }
+
+  return 'N/A';
+}
+
+function statusFromQuantity(quantity) {
+  if (quantity <= 0) {
+    return 'Critical';
+  }
+
+  if (quantity <= 10) {
+    return 'Low';
+  }
+
+  return 'Healthy';
+}
+
+function compareValues(a, b, direction) {
+  if (a === b) {
+    return 0;
+  }
+
+  if (typeof a === 'number' && typeof b === 'number') {
+    return direction === 'asc' ? a - b : b - a;
+  }
+
+  return direction === 'asc'
+    ? String(a).localeCompare(String(b))
+    : String(b).localeCompare(String(a));
+}
 
 function App() {
+  const [inventory, setInventory] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [vendorFilter, setVendorFilter] = useState('All Vendors');
   const [statusFilter, setStatusFilter] = useState('All Statuses');
   const [sizeFilter, setSizeFilter] = useState('All Sizes');
+  const [sortConfig, setSortConfig] = useState({ key: 'description', direction: 'asc' });
+  const [drafts, setDrafts] = useState({});
+  const [savingSku, setSavingSku] = useState('');
 
-  const vendors = useMemo(() => {
-    return ['All Vendors', ...new Set(inventorySeed.map(item => item.vendor))];
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadInventory() {
+      setLoading(true);
+      setError('');
+
+      try {
+        const response = await fetch('/api/inventory');
+        if (!response.ok) {
+          throw new Error(`Inventory request failed with ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (isMounted) {
+          setInventory(data);
+        }
+      } catch (requestError) {
+        if (isMounted) {
+          setError(requestError.message);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadInventory();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const statusOptions = ['All Statuses', 'Healthy', 'Low', 'Critical'];
-
-  const sizeFromName = (name) => {
-    if (name.toLowerCase().includes('12x12x12')) return 'Small';
-    if (name.toLowerCase().includes('18x18x16')) return 'Large';
-    return 'N/A';
-  };
+  const statusOptions = ['All Statuses', ...STATUS_ORDER];
 
   const filteredInventory = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
 
-    return inventorySeed.filter(item => {
+    const normalizedInventory = inventory.map((item) => {
+      const status = statusFromQuantity(item.item_quantity);
+      const size = sizeFromDescription(item.description);
+
+      return {
+        ...item,
+        status,
+        size,
+      };
+    });
+
+    const visibleInventory = normalizedInventory.filter((item) => {
       const matchesSearch =
         term.length === 0 ||
         item.sku.toLowerCase().includes(term) ||
-        item.product.toLowerCase().includes(term) ||
-        item.location.toLowerCase().includes(term);
-
-      const matchesVendor =
-        vendorFilter === 'All Vendors' || item.vendor === vendorFilter;
+        item.description.toLowerCase().includes(term);
 
       const matchesStatus =
         statusFilter === 'All Statuses' || item.status === statusFilter;
 
-      const sizeLabel = sizeFromName(item.product);
-      const matchesSize = sizeFilter === 'All Sizes' || sizeLabel === sizeFilter;
+      const matchesSize = sizeFilter === 'All Sizes' || item.size === sizeFilter;
 
-      return matchesSearch && matchesVendor && matchesStatus && matchesSize;
+      return matchesSearch && matchesStatus && matchesSize;
     });
-  }, [searchTerm, vendorFilter, statusFilter, sizeFilter]);
+
+    return [...visibleInventory].sort((left, right) => {
+      if (sortConfig.key === 'status') {
+        return compareValues(
+          STATUS_ORDER.indexOf(left.status),
+          STATUS_ORDER.indexOf(right.status),
+          sortConfig.direction
+        );
+      }
+
+      return compareValues(left[sortConfig.key], right[sortConfig.key], sortConfig.direction);
+    });
+  }, [inventory, searchTerm, sizeFilter, sortConfig, statusFilter]);
+
+  function toggleSort(key) {
+    setSortConfig((current) => {
+      if (current.key === key) {
+        return {
+          key,
+          direction: current.direction === 'asc' ? 'desc' : 'asc',
+        };
+      }
+
+      return {
+        key,
+        direction: 'asc',
+      };
+    });
+  }
+
+  function updateDraft(sku, value) {
+    setDrafts((current) => ({
+      ...current,
+      [sku]: value,
+    }));
+  }
+
+  async function saveManualOverride(item) {
+    const draftValue = drafts[item.sku];
+    const nextQuantity = draftValue === undefined ? item.item_quantity : Number(draftValue);
+
+    if (!Number.isInteger(nextQuantity) || nextQuantity < 0) {
+      setError(`Manual override for ${item.sku} must be a non-negative integer.`);
+      return;
+    }
+
+    setSavingSku(item.sku);
+    setError('');
+
+    try {
+      const response = await fetch(`/api/inventory/${item.sku}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ item_quantity: nextQuantity }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error || `Update failed with ${response.status}`);
+      }
+
+      const updatedItem = await response.json();
+      setInventory((current) => current.map((entry) => (
+        entry.sku === updatedItem.sku ? updatedItem : entry
+      )));
+      setDrafts((current) => ({
+        ...current,
+        [item.sku]: String(updatedItem.item_quantity),
+      }));
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setSavingSku('');
+    }
+  }
+
+  function renderSortLabel(label, key) {
+    if (sortConfig.key !== key) {
+      return `${label} / Sort`;
+    }
+
+    return `${label} / ${sortConfig.direction === 'asc' ? 'Asc' : 'Desc'}`;
+  }
 
   return (
     <div className="screen">
@@ -123,28 +222,18 @@ function App() {
       <section className="controls" aria-label="Search and filters">
         <input
           type="search"
-          placeholder="Search SKU, product, or location"
+          placeholder="Search SKU or description"
           value={searchTerm}
           onChange={(event) => setSearchTerm(event.target.value)}
           aria-label="Search inventory"
         />
 
         <select
-          value={vendorFilter}
-          onChange={(event) => setVendorFilter(event.target.value)}
-          aria-label="Filter by vendor"
-        >
-          {vendors.map(vendor => (
-            <option key={vendor} value={vendor}>{vendor}</option>
-          ))}
-        </select>
-
-        <select
           value={statusFilter}
           onChange={(event) => setStatusFilter(event.target.value)}
           aria-label="Filter by status"
         >
-          {statusOptions.map(status => (
+          {statusOptions.map((status) => (
             <option key={status} value={status}>{status}</option>
           ))}
         </select>
@@ -163,61 +252,88 @@ function App() {
         <button
           type="button"
           className="exportBtn"
-          onClick={() => window.alert('Export module hook: connect CSV/PDF download here.')}
+          onClick={() => window.print()}
         >
-          Download / Export
+          Print Table
         </button>
       </section>
 
-      <section className="tableCard">
-        <table>
-          <thead>
-            <tr>
-              <th>SKU</th>
-              <th>Product</th>
-              <th>Vendor</th>
-              <th>On-hand</th>
-              <th>Reorder Point</th>
-              <th>Last 30 Used</th>
-              <th>Location</th>
-              <th>Status</th>
-              <th>View / Edit</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredInventory.map((item) => {
-              const isBelowReorder = item.onHand <= item.reorderPoint;
-              return (
-                <tr key={item.sku} className={isBelowReorder ? 'warningRow' : ''}>
+      {error && <p className="emptyState" role="alert">{error}</p>}
+      {loading && <p className="emptyState">Loading inventory...</p>}
+
+      {!loading && (
+        <section className="tableCard">
+          <table>
+            <thead>
+              <tr>
+                <th>
+                  <button type="button" className="sortButton" onClick={() => toggleSort('sku')}>
+                    {renderSortLabel('SKU', 'sku')}
+                  </button>
+                </th>
+                <th>
+                  <button type="button" className="sortButton" onClick={() => toggleSort('description')}>
+                    {renderSortLabel('Product', 'description')}
+                  </button>
+                </th>
+                <th>
+                  <button type="button" className="sortButton" onClick={() => toggleSort('item_quantity')}>
+                    {renderSortLabel('On-hand', 'item_quantity')}
+                  </button>
+                </th>
+                <th>
+                  <button type="button" className="sortButton" onClick={() => toggleSort('return_quantity')}>
+                    {renderSortLabel('Returns', 'return_quantity')}
+                  </button>
+                </th>
+                <th>
+                  <button type="button" className="sortButton" onClick={() => toggleSort('status')}>
+                    {renderSortLabel('Status', 'status')}
+                  </button>
+                </th>
+                <th>Manual Override</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredInventory.map((item) => (
+                <tr key={item.sku} className={item.status !== 'Healthy' ? 'warningRow' : ''}>
                   <td>{item.sku}</td>
-                  <td>{item.product}</td>
-                  <td>{item.vendor}</td>
-                  <td>{item.onHand}</td>
-                  <td>{item.reorderPoint}</td>
-                  <td>{item.last30Used}</td>
-                  <td>{item.location}</td>
+                  <td>{item.description}</td>
+                  <td>{item.item_quantity}</td>
+                  <td>{item.return_quantity}</td>
                   <td>
                     <span className={`status ${item.status.toLowerCase()}`}>{item.status}</span>
                   </td>
                   <td>
-                    <button
-                      type="button"
-                      className="editBtn"
-                      onClick={() => window.alert(`Manual override hook for ${item.sku}`)}
-                    >
-                      Open
-                    </button>
+                    <div className="manualOverride">
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={drafts[item.sku] ?? String(item.item_quantity)}
+                        onChange={(event) => updateDraft(item.sku, event.target.value)}
+                        aria-label={`Manual override for ${item.sku}`}
+                      />
+                      <button
+                        type="button"
+                        className="editBtn"
+                        onClick={() => saveManualOverride(item)}
+                        disabled={savingSku === item.sku}
+                      >
+                        {savingSku === item.sku ? 'Saving...' : 'Save'}
+                      </button>
+                    </div>
                   </td>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
+              ))}
+            </tbody>
+          </table>
 
-        {filteredInventory.length === 0 && (
-          <p className="emptyState">No products match your search and filter selection.</p>
-        )}
-      </section>
+          {filteredInventory.length === 0 && (
+            <p className="emptyState">No products match your search and filter selection.</p>
+          )}
+        </section>
+      )}
     </div>
   );
 }
