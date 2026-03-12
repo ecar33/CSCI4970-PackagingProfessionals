@@ -47,13 +47,12 @@ test('renders inventory from the backend', async () => {
 });
 
 test('saves a manual override through the backend', async () => {
-  const user = userEvent.setup();
   render(<App />);
 
   const overrideInput = await screen.findByLabelText(/manual override for 10005/i);
-  await user.clear(overrideInput);
-  await user.type(overrideInput, '15');
-  await user.click(screen.getByRole('button', { name: 'Save' }));
+  userEvent.clear(overrideInput);
+  userEvent.type(overrideInput, '15');
+  userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
   await waitFor(() => {
     expect(global.fetch).toHaveBeenCalledWith('/api/inventory/10005', expect.objectContaining({
