@@ -17,6 +17,15 @@ ORDERS_DIR = "/app/orders"
 # Store OCR results in memory (replace with DB later)
 ocr_results = {}
 
+
+def serialize_inventory_item(item):
+    return {
+        "sku": item.sku,
+        "description": item.description,
+        "item_quantity": item.item_quantity,
+        "return_quantity": item.return_quantity,
+    }
+
 def increment_inventory_from_boxes(boxes):
     """Increase inventory from parsed OCR box counts."""
     for box in boxes:
@@ -75,6 +84,36 @@ def on_new_order(filename, text, boxes):
 @app.get("/api/health")
 def health():
     return jsonify(status="ok")
+
+
+@app.get("/api/inventory")
+def get_inventory():
+    items = db.session.query(Inventory).order_by(Inventory.description.asc()).all()
+    return jsonify([serialize_inventory_item(item) for item in items])
+
+
+@app.patch("/api/inventory/<sku>")
+def update_inventory_item(sku):
+    item = db.session.get(Inventory, sku)
+    if item is None:
+        return jsonify(error="Inventory item not found"), 404
+
+    payload = request.get_json(silent=True) or {}
+
+    if "item_quantity" in payload:
+        try:
+            item.item_quantity = max(0, int(payload["item_quantity"]))
+        except (TypeError, ValueError):
+            return jsonify(error="item_quantity must be an integer"), 400
+
+    if "description" in payload:
+        description = str(payload["description"]).strip()
+        if not description:
+            return jsonify(error="description must not be empty"), 400
+        item.description = description
+
+    db.session.commit()
+    return jsonify(serialize_inventory_item(item))
 
 @app.get("/api/ocr/orders")
 def ocr_all_orders():
