@@ -2,7 +2,7 @@
 import os
 import time
 import logging
-from watchdog.observers import Observer
+from watchdog.observers.polling import PollingObserver
 from watchdog.events import FileSystemEventHandler
 from ocr import extract_text_from_pdf, parse_boxes_from_text
 
@@ -34,7 +34,7 @@ class OrderFileHandler(FileSystemEventHandler):
             logger.info(f"OCR complete for {filename}")
             self.callback(filename, text, boxes)
         except Exception as e:
-            logger.error(f"OCR failed for {event.src_path}: {e}")
+            logger.error(f"Failed processing {event.src_path}: {e}", exc_info=True)
 
     def _wait_for_file_ready(self, filepath, timeout=30):
         """Wait until the file size stops changing (fully written)."""
@@ -60,7 +60,7 @@ def start_watcher(orders_dir, callback):
         os.makedirs(orders_dir, exist_ok=True)
 
     handler = OrderFileHandler(callback)
-    observer = Observer()
+    observer = PollingObserver()
     observer.schedule(handler, orders_dir, recursive=False)
     observer.daemon = True
     observer.start()
