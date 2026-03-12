@@ -1,24 +1,76 @@
 from flask import Flask, jsonify, request
-import sqlite3
 import logging
 from ocr import extract_text_from_pdf, process_all_orders, parse_boxes_from_text, process_order_pdf
 from csv_parser import parse_sales_csv
 from watcher import start_watcher
+from databasemake import db, init_db, Inventory
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///inv.db"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+init_db(app)
 
 ORDERS_DIR = "/app/orders"
 # Store OCR results in memory (replace with DB later)
 ocr_results = {}
 
+def increment_inventory_from_boxes(boxes):
+    """Increase inventory from parsed OCR box counts."""
+    for box in boxes:
+        box_size = box.get("box_size")
+        count = int(box.get("count", 0))
+        if not box_size or count <= 0:
+            continue
+
+        # Search for an existing inventory row whose description contains the box size
+        item = db.session.query(Inventory).filter(
+            Inventory.description.ilike(f"%{box_size}%")
+        ).first()
+
+        if item is None:
+            logger.warning(f"No inventory item found with '{box_size}' in description — skipping.")
+            continue
+
+        item.item_quantity += count
+        logger.info(f"Incremented SKU {item.sku} ({item.description}) by {count}")
+
+    db.session.commit()
+
+def decrement_inventory_from_sales(items):
+    """Apply sales decrements and returns from parsed CSV rows."""
+    for item_data in items:
+        sku = item_data.get("sku")
+        if not sku:
+            continue
+
+        sales_count = int(item_data.get("sales_count", 0))
+        return_count = int(item_data.get("return_count", 0))
+        item = db.session.get(Inventory, sku)
+
+        if item is None:
+            item = Inventory(
+                sku=sku,
+                description=item_data.get("description", sku),
+                item_quantity=max(0, return_count - sales_count),
+                return_quantity=return_count,
+            )
+            db.session.add(item)
+            continue
+
+        item.description = item_data.get("description", item.description)
+        item.item_quantity = max(0, item.item_quantity - sales_count + return_count)
+        item.return_quantity += return_count
+
+    db.session.commit()
+
 def on_new_order(filename, text, boxes):
     """Callback invoked when a new PDF is detected and processed."""
     ocr_results[filename] = {"text": text, "boxes": boxes}
     logger.info(f"Stored OCR result for {filename} ({len(text)} chars, {len(boxes)} box types)")
-    # TODO: update SQL inventory table
+    increment_inventory_from_boxes(boxes)
 
 @app.get("/api/health")
 def health():
@@ -59,6 +111,7 @@ def upload_csv():
     if not file.filename.lower().endswith(".csv"):
         return jsonify(error="File must be a .csv"), 400
     items = parse_sales_csv(file.stream)
+    decrement_inventory_from_sales(items)
     logger.info(f"Parsed uploaded CSV {file.filename} ({len(items)} items)")
     return jsonify({"file": file.filename, "items": items})
 
