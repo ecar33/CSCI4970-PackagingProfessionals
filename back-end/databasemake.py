@@ -19,8 +19,7 @@ class Inventory(db.Model):
     return_quantity: Mapped[int] = mapped_column(nullable=False, default=0)
 
 
-# Add all items you want to track here. They will only be inserted if
-# the SKU does not already exist in the database.
+# Initial values for the inventory table, need to add remaining products still
 SEED_ITEMS = [
     {"sku": "10064", "description": "15x12x10 Box"},
     {"sku": "10260", "description": "Size #7- 14.5x20 Bubble Mailer"},
@@ -66,7 +65,7 @@ def seed_db() -> None:
             db.session.add(Inventory(
                 sku=item["sku"],
                 description=item["description"],
-                item_quantity=0,
+                item_quantity=50,
                 return_quantity=0,
             ))
     db.session.commit()
@@ -82,6 +81,6 @@ def init_db(app: Flask) -> None:
 
 if __name__ == "__main__":
     app = Flask(__name__)
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///inv.db"
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////app/data/inv.db"
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     init_db(app)

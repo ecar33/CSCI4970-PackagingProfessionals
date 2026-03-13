@@ -4,7 +4,7 @@
     ports:
       - "5000:5000"
     volumes:
-        - backend-data:/docker/IMS
+        - backend-data:/app/data
         - /Order-Summaries:/app/orders
         - /Count-Sheets:/app/counts
 

@@ -28,25 +28,25 @@ def serialize_inventory_item(item):
 
 def increment_inventory_from_boxes(boxes):
     """Increase inventory from parsed OCR box counts."""
-    for box in boxes:
-        box_size = box.get("box_size")
-        count = int(box.get("count", 0))
-        if not box_size or count <= 0:
-            continue
+    with app.app_context():
+        for box in boxes:
+            box_size = box.get("box_size")
+            count = int(box.get("count", 0))
+            if not box_size or count <= 0:
+                continue
 
-        # Search for an existing inventory row whose description contains the box size
-        item = db.session.query(Inventory).filter(
-            Inventory.description.ilike(f"%{box_size}%")
-        ).first()
+            item = db.session.query(Inventory).filter(
+                Inventory.description.ilike(f"%{box_size}%")
+            ).first()
 
-        if item is None:
-            logger.warning(f"No inventory item found with '{box_size}' in description — skipping.")
-            continue
+            if item is None:
+                logger.warning(f"No inventory item found with '{box_size}' in description — skipping.")
+                continue
 
-        item.item_quantity += count
-        logger.info(f"Incremented SKU {item.sku} ({item.description}) by {count}")
+            item.item_quantity += count
+            logger.info(f"Incremented SKU {item.sku} ({item.description}) by {count}")
 
-    db.session.commit()
+        db.session.commit()
 
 def decrement_inventory_from_sales(items):
     """Apply sales decrements and returns from parsed CSV rows."""
@@ -154,11 +154,13 @@ def upload_csv():
     logger.info(f"Parsed uploaded CSV {file.filename} ({len(items)} items)")
     return jsonify({"file": file.filename, "items": items})
 
+# Start the file watcher at module load time so it runs regardless of
+# how Flask is launched (python app.py, flask run, gunicorn, etc.)
+observer = start_watcher(ORDERS_DIR, on_new_order)
+
 if __name__ == "__main__":
-    # Start the file watcher before running the Flask app
-    observer = start_watcher(ORDERS_DIR, on_new_order)
     try:
-        app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)
+        app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False)
     finally:
         observer.stop()
         observer.join()
