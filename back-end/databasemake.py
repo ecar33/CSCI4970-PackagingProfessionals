@@ -11,6 +11,11 @@ db = SQLAlchemy(model_class=Base)
 
 
 class Inventory(db.Model):
+    """
+        @brief Create / find existing inventory items in the database.
+    
+        @param db.Model SQLAlchemy model base class
+        """
     __tablename__ = "inventory"
 
     sku: Mapped[str] = mapped_column(primary_key=True)
@@ -58,7 +63,9 @@ SEED_ITEMS = [
 
 
 def seed_db() -> None:
-    """Insert seed items that don't already exist in the inventory table."""
+    """
+        @brief Seed the inventory database with initial items if they don't already exist.
+    """
     for item in SEED_ITEMS:
         existing = db.session.get(Inventory, item["sku"])
         if existing is None:
@@ -72,6 +79,11 @@ def seed_db() -> None:
 
 
 def init_db(app: Flask) -> None:
+    """
+        @brief Initialize the database and create tables, then seed with initial inventory items.
+    
+        @param app Flask application instance to bind the database to
+        """
     db.init_app(app)
 
     with app.app_context():
