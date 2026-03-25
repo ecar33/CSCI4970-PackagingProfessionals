@@ -1,6 +1,6 @@
 ﻿services:
   backend:
-    image: ghcr.io/raycronin/packaging-professionals-capstone-backend:latest
+    image: raycronin/packaging-professionals-capstone-backend:latest
     ports:
       - "5000:5000"
     volumes:
@@ -9,7 +9,7 @@
         - /Count-Sheets:/app/counts
 
   frontend:
-    image: ghcr.io/raycronin/packaging-professionals-capstone-frontend:latest
+    image: raycronin/packaging-professionals-capstone-frontend:latest
     ports:
       - "3000:3000"
     depends_on:

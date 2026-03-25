@@ -19,6 +19,13 @@ ocr_results = {}
 
 
 def serialize_inventory_item(item):
+    """
+        @brief Serialize an Inventory item to a JSON-friendly dictionary format for API responses.
+    
+        @param item Inventory model instance to serialize
+    
+        @return A dictionary containing the SKU, description, item quantity, and return quantity of the inventory item
+        """
     return {
         "sku": item.sku,
         "description": item.description,
@@ -27,7 +34,11 @@ def serialize_inventory_item(item):
     }
 
 def increment_inventory_from_boxes(boxes):
-    """Increase inventory from parsed OCR box counts."""
+    """
+        @brief Increment inventory counts based on parsed box data from OCR results. This function takes a list of boxes (each with a size and count), finds the corresponding inventory item by matching the box size in the description, and increments the item quantity accordingly.
+    
+        @param boxes A list of dictionaries, each containing "box_size" (e.g., "18x18x18") and "count" (quantity received) extracted from OCR parsing of order PDFs
+        """
     with app.app_context():
         for box in boxes:
             box_size = box.get("box_size")
@@ -49,7 +60,11 @@ def increment_inventory_from_boxes(boxes):
         db.session.commit()
 
 def decrement_inventory_from_sales(items):
-    """Apply sales decrements and returns from parsed CSV rows."""
+    """
+        @brief Decrement inventory counts based on sales data parsed from an uploaded CSV file. This function takes a list of items (each with SKU, description, sales count, and return count), finds the corresponding inventory item by SKU, and updates the item quantity by decrementing sales and incrementing returns.
+    
+        @param items A list of dictionaries, each containing "sku", "description", "sales_count", and "return_count" parsed from the uploaded CSV file
+        """
     for item_data in items:
         sku = item_data.get("sku")
         if not sku:
@@ -76,24 +91,44 @@ def decrement_inventory_from_sales(items):
     db.session.commit()
 
 def on_new_order(filename, text, boxes):
-    """Callback invoked when a new PDF is detected and processed."""
+    """
+        @brief Callback function to handle new orders detected by the file watcher. This function is called with the filename, extracted text, and parsed box data when a new order PDF is processed. It stores the OCR results in memory and updates the inventory counts based on the parsed box information.
+    
+        @param filename The name of the newly detected order PDF file
+        @param text The full text extracted from the PDF using OCR
+        @param boxes A list of dictionaries containing parsed box information (box size and count) extracted from the OCR text of the order PDF
+        """
     ocr_results[filename] = {"text": text, "boxes": boxes}
     logger.info(f"Stored OCR result for {filename} ({len(text)} chars, {len(boxes)} box types)")
     increment_inventory_from_boxes(boxes)
 
 @app.get("/api/health")
 def health():
+    """
+        @brief Health check endpoint to verify that the API is running.
+
+        """
     return jsonify(status="ok")
 
 
 @app.get("/api/inventory")
 def get_inventory():
+    """
+        @brief Endpoint to retrieve the current inventory data. This function queries the database for all inventory items, orders them by description, and returns a JSON list of serialized inventory items for API responses.
+        """
     items = db.session.query(Inventory).order_by(Inventory.description.asc()).all()
     return jsonify([serialize_inventory_item(item) for item in items])
 
 
 @app.patch("/api/inventory/<sku>")
 def update_inventory_item(sku):
+    """
+        @brief Endpoint to update an inventory item by SKU. This function accepts a JSON payload that can include "item_quantity" to set the quantity (must be a non-negative integer) and "description" to update the item's description (must not be empty). It validates the input, updates the corresponding inventory item in the database, and returns the updated item as JSON.
+        
+        @param sku The SKU of the inventory item to update, provided as a URL parameter
+        
+        @return A JSON representation of the updated inventory item, or an error message if the item is not found or if the input is invalid
+        """
     item = db.session.get(Inventory, sku)
     if item is None:
         return jsonify(error="Inventory item not found"), 404
@@ -117,13 +152,23 @@ def update_inventory_item(sku):
 
 @app.get("/api/ocr/orders")
 def ocr_all_orders():
-    """Run OCR on every PDF in the orders volume."""
+    """
+        @brief Endpoint to run OCR on all PDF files in the orders directory and return the extracted text for each file as JSON. This function processes all order PDFs by extracting text and parsing box information, returning a dictionary mapping each filename to its extracted text.
+        
+        @return A JSON object where each key is a PDF filename and the value is the extracted text from that PDF file, representing the OCR results for all orders in the directory
+        """
     results = process_all_orders(ORDERS_DIR)
     return jsonify(results)
 
 @app.get("/api/ocr/orders/<filename>")
 def ocr_single_order(filename):
-    """Run OCR on a specific PDF."""
+    """
+        @brief Endpoint to run OCR on a specific PDF file in the orders directory and return the extracted text as JSON. This function checks if the specified file exists, extracts text from it using OCR, and returns the filename along with the extracted text. If the file is not found, it returns a 404 error.
+        
+        @param filename The name of the PDF file to process, provided as a URL parameter
+            
+        @return A JSON object containing the filename and the extracted text from the specified PDF file, or an error message if the file is not found
+        """
     import os
     filepath = os.path.join(ORDERS_DIR, filename)
     if not os.path.isfile(filepath):
@@ -133,7 +178,13 @@ def ocr_single_order(filename):
 
 @app.get("/api/ocr/boxes/<filename>")
 def ocr_boxes(filename):
-    """Run OCR on a specific PDF and return only parsed box data."""
+    """
+        @brief Endpoint to run OCR on a specific PDF file in the orders directory, parse box information from the extracted text, and return the results as JSON. This function checks if the specified file exists, processes it to extract text and parse box data, and returns a structured JSON object containing the filename and a list of boxes with their sizes and counts. If the file is not found, it returns a 404 error.
+        
+        @param filename The name of the PDF file to process, provided as a URL parameter
+        
+        @return A JSON object containing the filename and a list of boxes extracted from the specified PDF file, where each box is represented as a dictionary with "box_size" and "count" keys, or an error message if the file is not found
+        """
     import os
     filepath = os.path.join(ORDERS_DIR, filename)
     if not os.path.isfile(filepath):
@@ -143,7 +194,11 @@ def ocr_boxes(filename):
 
 @app.post("/api/csv/upload")
 def upload_csv():
-    """Accept a CSV file upload and return parsed sales data as JSON."""
+    """
+        @brief Endpoint to upload a sales/inventory CSV file, parse its contents, and update the inventory counts accordingly. This function checks for the presence of a file in the request, validates that it is a CSV, parses the sales data from the file, updates the inventory by decrementing sales and incrementing returns, and returns a JSON response containing the filename and the parsed items. If no file is provided or if the file is not a CSV, it returns an appropriate error message.
+        
+            @return A JSON object containing the filename and a list of parsed items from the uploaded CSV file, where each item includes "sku", "description", "sales_count", and "return_count", or an error message if the file is not provided or is not a CSV
+        """
     if "file" not in request.files:
         return jsonify(error="No file provided"), 400
     file = request.files["file"]

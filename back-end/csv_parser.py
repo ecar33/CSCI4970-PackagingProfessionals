@@ -7,19 +7,20 @@ logger = logging.getLogger(__name__)
 
 def parse_sales_csv(file_stream):
     """
-    Parse a sales/inventory CSV from the Flask upload
-
-    Returns JSON of the form:
-    [
-        {
-            "sku": "10064",
-            "description": "15x12x10 Box",
-            "sales_count": 13,
-            "return_count": 0
-        },
-        ...
-    ]
-    """
+        @brief Parse a sales/inventory CSV from the Flask upload.
+    
+        @param file_stream CSV file stream from the Flask request
+    
+        @return JSON of the form:
+            [
+                {
+                    "sku": "10064",
+                    "description": "15x12x10 Box",
+                    "sales_count": 13,
+                    "return_count": 0
+                }
+            ]
+        """
     items = []
     try:
         text = file_stream.read().decode("utf-8-sig")
