@@ -17,7 +17,6 @@ ORDERS_DIR = "/app/orders"
 # Store OCR results in memory (replace with DB later)
 ocr_results = {}
 
-
 def serialize_inventory_item(item):
     return {
         "sku": item.sku,
