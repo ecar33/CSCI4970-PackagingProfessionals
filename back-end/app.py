@@ -16,7 +16,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///inv.db"
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////app/data/inv.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 init_db(app)
 
