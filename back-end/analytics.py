@@ -115,7 +115,7 @@ def get_reorder_recommendation(sku: str, days: int = 30,
     @param safety_stock_days Extra buffer days of stock to keep on hand
 
     @return dict with sku, description, current_quantity, daily_usage_rate,
-            reorder_point, should_reorder, days_until_reorder, suggested_order_qty
+            reorder_point, should_reorder, days_until_reorder
     """
     usage = get_usage_rate(sku, days)
     if usage is None:
@@ -129,7 +129,6 @@ def get_reorder_recommendation(sku: str, days: int = 30,
     if rate <= 0:
         days_until_reorder = None
         should_reorder = False
-        suggested_qty = 0
     else:
         if current <= reorder_point:
             should_reorder = True
@@ -137,10 +136,6 @@ def get_reorder_recommendation(sku: str, days: int = 30,
         else:
             should_reorder = False
             days_until_reorder = round((current - reorder_point) / rate, 1)
-
-        # Suggest ordering enough to cover 30 days of usage beyond lead time
-        target_stock = rate * (lead_time_days + 30)
-        suggested_qty = max(0, round(target_stock - current))
 
     return {
         "sku": usage["sku"],
@@ -152,7 +147,6 @@ def get_reorder_recommendation(sku: str, days: int = 30,
         "reorder_point": reorder_point,
         "should_reorder": should_reorder,
         "days_until_reorder": days_until_reorder,
-        "suggested_order_qty": suggested_qty,
     }
 
 
@@ -188,7 +182,6 @@ def get_all_analytics(days: int = 30,
             "reorder_point": reorder["reorder_point"],
             "should_reorder": reorder["should_reorder"],
             "days_until_reorder": reorder["days_until_reorder"],
-            "suggested_order_qty": reorder["suggested_order_qty"],
             "lead_time_days": lead_time_days,
             "safety_stock_days": safety_stock_days,
         })
@@ -228,4 +221,3 @@ def get_inventory_history(sku: str, days: int = 30) -> list:
         }
         for log in logs
     ]
-
