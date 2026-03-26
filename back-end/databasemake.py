@@ -1,6 +1,7 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from datetime import datetime, timezone
 
 
 class Base(DeclarativeBase):
@@ -22,6 +23,48 @@ class Inventory(db.Model):
     description: Mapped[str] = mapped_column(nullable=False)
     item_quantity: Mapped[int] = mapped_column(nullable=False, default=0)
     return_quantity: Mapped[int] = mapped_column(nullable=False, default=0)
+
+
+class InventoryLog(db.Model):
+    """
+        @brief Log every inventory change so we can compute usage rates and projections.
+
+        change_type is one of: "order_in" (OCR order added stock),
+        "sale" (CSV sale decremented stock), "return" (CSV return added stock),
+        "manual" (manual edit).
+        """
+    __tablename__ = "inventory_log"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    sku: Mapped[str] = mapped_column(nullable=False, index=True)
+    change_type: Mapped[str] = mapped_column(nullable=False)
+    quantity_change: Mapped[int] = mapped_column(nullable=False)
+    quantity_after: Mapped[int] = mapped_column(nullable=False)
+    timestamp: Mapped[datetime] = mapped_column(
+        nullable=False, default=lambda: datetime.now(timezone.utc)
+    )
+    note: Mapped[str] = mapped_column(nullable=True)
+
+
+def log_inventory_change(sku: str, change_type: str, quantity_change: int,
+                         quantity_after: int, note: str = None) -> None:
+    """
+        @brief Record an inventory change in the log table.
+
+        @param sku SKU of the item
+        @param change_type One of "order_in", "sale", "return", "manual"
+        @param quantity_change Signed delta (+added, -removed)
+        @param quantity_after Inventory level after the change
+        @param note Optional note
+        """
+    entry = InventoryLog(
+        sku=sku,
+        change_type=change_type,
+        quantity_change=quantity_change,
+        quantity_after=quantity_after,
+        note=note,
+    )
+    db.session.add(entry)
 
 
 # Initial values for the inventory table, need to add remaining products still
