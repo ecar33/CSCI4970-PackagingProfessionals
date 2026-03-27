@@ -1,15 +1,23 @@
 from flask import Flask, jsonify, request
 import logging
+import os
 from ocr import extract_text_from_pdf, process_all_orders, parse_boxes_from_text, process_order_pdf
 from csv_parser import parse_sales_csv
 from watcher import start_watcher
-from databasemake import db, init_db, Inventory
+from databasemake import db, init_db, Inventory, InventoryLog, log_inventory_change
+from analytics import (
+    get_usage_rate,
+    get_time_to_empty,
+    get_reorder_recommendation,
+    get_all_analytics,
+    get_inventory_history,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///inv.db"
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:////app/data/inv.db")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 init_db(app)
 
@@ -54,6 +62,13 @@ def increment_inventory_from_boxes(boxes):
                 continue
 
             item.item_quantity += count
+            log_inventory_change(
+                sku=item.sku,
+                change_type="order_in",
+                quantity_change=count,
+                quantity_after=item.item_quantity,
+                note=f"OCR order: {box_size} x{count}",
+            )
             logger.info(f"Incremented SKU {item.sku} ({item.description}) by {count}")
 
         db.session.commit()
@@ -74,18 +89,48 @@ def decrement_inventory_from_sales(items):
         item = db.session.get(Inventory, sku)
 
         if item is None:
+            new_qty = max(0, return_count - sales_count)
             item = Inventory(
                 sku=sku,
                 description=item_data.get("description", sku),
-                item_quantity=max(0, return_count - sales_count),
+                item_quantity=new_qty,
                 return_quantity=return_count,
             )
             db.session.add(item)
+            if sales_count > 0:
+                log_inventory_change(
+                    sku=sku, change_type="sale",
+                    quantity_change=-sales_count,
+                    quantity_after=new_qty,
+                    note="CSV sale (new item)",
+                )
+            if return_count > 0:
+                log_inventory_change(
+                    sku=sku, change_type="return",
+                    quantity_change=return_count,
+                    quantity_after=new_qty,
+                    note="CSV return (new item)",
+                )
             continue
 
         item.description = item_data.get("description", item.description)
         item.item_quantity = max(0, item.item_quantity - sales_count + return_count)
         item.return_quantity += return_count
+
+        if sales_count > 0:
+            log_inventory_change(
+                sku=sku, change_type="sale",
+                quantity_change=-sales_count,
+                quantity_after=item.item_quantity,
+                note="CSV sale",
+            )
+        if return_count > 0:
+            log_inventory_change(
+                sku=sku, change_type="return",
+                quantity_change=return_count,
+                quantity_after=item.item_quantity,
+                note="CSV return",
+            )
 
     db.session.commit()
 
@@ -136,7 +181,15 @@ def update_inventory_item(sku):
 
     if "item_quantity" in payload:
         try:
-            item.item_quantity = max(0, int(payload["item_quantity"]))
+            new_qty = max(0, int(payload["item_quantity"]))
+            old_qty = item.item_quantity
+            item.item_quantity = new_qty
+            log_inventory_change(
+                sku=sku, change_type="manual",
+                quantity_change=new_qty - old_qty,
+                quantity_after=new_qty,
+                note="Manual edit via API",
+            )
         except (TypeError, ValueError):
             return jsonify(error="item_quantity must be an integer"), 400
 
@@ -148,6 +201,60 @@ def update_inventory_item(sku):
 
     db.session.commit()
     return jsonify(serialize_inventory_item(item))
+
+@app.get("/api/analytics")
+def analytics_all():
+    """
+    @brief Return usage-rate, time-to-empty, and reorder data for every
+           inventory item.  Accepts optional query params: days, lead_time, safety_stock.
+    """
+    days = request.args.get("days", 30, type=int)
+    lead_time = request.args.get("lead_time", 5, type=float)
+    safety_stock = request.args.get("safety_stock", 3, type=float)
+    data = get_all_analytics(days, lead_time, safety_stock)
+    return jsonify(data)
+
+
+@app.get("/api/analytics/<sku>")
+def analytics_sku(sku):
+    """
+    @brief Return detailed analytics for a single SKU.
+    
+    @param sku The SKU to query, provided as a URL parameter
+    
+    @return A JSON object containing the usage rate, time-to-empty, and reorder recommendation for the specified SKU, or an error message if the SKU is not found
+    """
+    days = request.args.get("days", 30, type=int)
+    lead_time = request.args.get("lead_time", 5, type=float)
+    safety_stock = request.args.get("safety_stock", 3, type=float)
+
+    usage = get_usage_rate(sku, days)
+    if usage is None:
+        return jsonify(error="SKU not found"), 404
+
+    tte = get_time_to_empty(sku, days)
+    reorder = get_reorder_recommendation(sku, days, lead_time, safety_stock)
+
+    return jsonify({
+        "usage": usage,
+        "time_to_empty": tte,
+        "reorder": reorder,
+    })
+
+
+@app.get("/api/analytics/<sku>/history")
+def analytics_history(sku):
+    """
+    @brief Return the inventory change log for a single SKU (for charting).
+    
+    @param sku The SKU to query, provided as a URL parameter
+    
+    @return A JSON list of inventory log entries for the specified SKU, where each entry includes timestamp, change_type, quantity_change, quantity_after, and note
+    """
+    days = request.args.get("days", 30, type=int)
+    history = get_inventory_history(sku, days)
+    return jsonify(history)
+
 
 @app.get("/api/ocr/orders")
 def ocr_all_orders():
