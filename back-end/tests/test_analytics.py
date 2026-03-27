@@ -2,8 +2,7 @@
 Tests for analytics.py — usage rate, time-to-empty, and reorder logic.
 
 Log records are inserted with explicit naive UTC timestamps so these tests
-document the expected behaviour after the databasemake.py line-44 fix
-(switching from tz-aware to naive datetime storage).
+document the expected behaviour.
 """
 import pytest
 from datetime import datetime, timedelta, timezone
