@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, request
 import logging
+import os
 from ocr import extract_text_from_pdf, process_all_orders, parse_boxes_from_text, process_order_pdf
 from csv_parser import parse_sales_csv
 from watcher import start_watcher
@@ -16,7 +17,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////app/data/inv.db"
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:////app/data/inv.db")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 init_db(app)
 
