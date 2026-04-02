@@ -1,8 +1,8 @@
 :root {
   --ink: #1f2a37;
-  --brand: #0e7a6a;
-  --brand-dark: #085d51;
-  --accent: #f59e0b;
+  --brand: #009cbd;
+  --brand-dark: #007a99;
+  --accent: #ffd101;
   --card: #fefefe;
   --line: #d7dde4;
   --danger: #c53030;
@@ -18,10 +18,7 @@ body {
   margin: 0;
   font-family: "Avenir Next", "Trebuchet MS", "Segoe UI", sans-serif;
   color: var(--ink);
-  background:
-    radial-gradient(circle at 15% 12%, #f3fff9 0%, transparent 38%),
-    radial-gradient(circle at 87% 92%, #fff4d9 0%, transparent 34%),
-    linear-gradient(180deg, #edf7f4 0%, #f7f8fa 60%, #eef3f8 100%);
+  background: radial-gradient(ellipse at 60% 20%, #00b8d9 0%, #009cbd 40%, #007a99 100%);
   min-height: 100vh;
 }
 
@@ -75,9 +72,9 @@ h1 {
 }
 
 .navMenu .active {
-  background: #d9f7ef;
-  border-color: #84d8c7;
-  color: var(--brand-dark);
+  background: var(--accent);
+  border-color: #e6bc00;
+  color: var(--ink);
 }
 
 .controls {
@@ -104,7 +101,7 @@ h1 {
 
 .controls input:focus,
 .controls select:focus {
-  outline: 2px solid #9ae3d7;
+  outline: 2px solid #7fd6e8;
   border-color: var(--brand);
 }
 
@@ -118,9 +115,13 @@ h1 {
 }
 
 .exportBtn {
-  background: linear-gradient(135deg, var(--brand), var(--brand-dark));
-  color: #fff;
+  background: var(--accent);
+  color: var(--ink);
   white-space: nowrap;
+}
+
+.exportBtn:hover:not(:disabled) {
+  background: #e6bc00;
 }
 
 .tableCard {
@@ -197,8 +198,12 @@ th {
 }
 
 .editBtn {
-  background: #eff3f8;
-  color: #31465f;
+  background: var(--accent);
+  color: var(--ink);
+}
+
+.editBtn:hover:not(:disabled) {
+  background: #e6bc00;
 }
 
 .manualOverride {
@@ -333,7 +338,7 @@ th {
 }
 
 .paramInput:focus {
-  outline: 2px solid #9ae3d7;
+  outline: 2px solid #7fd6e8;
   border-color: var(--brand);
 }
 
@@ -352,7 +357,7 @@ th {
 }
 
 .analyticsSearch:focus {
-  outline: 2px solid #9ae3d7;
+  outline: 2px solid #7fd6e8;
   border-color: var(--brand);
 }
 
@@ -481,7 +486,7 @@ th {
 
 .cssBarFill {
   height: 100%;
-  background: var(--brand);
+  background: var(--accent);
   border-radius: 999px;
   transition: width 400ms ease;
 }
@@ -534,13 +539,13 @@ th {
 }
 
 .analyticsRow:hover {
-  background: #f0faf7;
+  background: #eef9fc;
 }
 
 .detailRow td {
   padding: 0;
-  background: #f7fbfa;
-  border-bottom: 2px solid #c3e6df;
+  background: #f0f9fc;
+  border-bottom: 2px solid #7fd6e8;
 }
 
 .detailPanel {
