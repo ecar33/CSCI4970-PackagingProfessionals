@@ -1,6 +1,8 @@
 from flask import Flask, jsonify, request
 import logging
 import os
+from dotenv import load_dotenv
+load_dotenv()
 from ocr import extract_text_from_pdf, process_all_orders, parse_boxes_from_text, process_order_pdf
 from csv_parser import parse_sales_csv
 from watcher import start_watcher
