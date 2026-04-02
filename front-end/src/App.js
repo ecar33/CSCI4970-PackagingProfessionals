@@ -55,6 +55,8 @@ function App() {
   const [sortConfig, setSortConfig] = useState({ key: 'description', direction: 'asc' });
   const [drafts, setDrafts] = useState({});
   const [savingSku, setSavingSku] = useState('');
+  const [importingCsv, setImportingCsv] = useState(false);
+  const csvInputRef = React.useRef(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -198,6 +200,41 @@ function App() {
     }
   }
 
+  async function handleCsvImport(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    setImportingCsv(true);
+    setError('');
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/csv/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error || `Import failed with ${response.status}`);
+      }
+
+      // Refresh inventory after successful import
+      const invResponse = await fetch('/api/inventory');
+      if (invResponse.ok) {
+        const data = await invResponse.json();
+        setInventory(data);
+      }
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setImportingCsv(false);
+      event.target.value = '';
+    }
+  }
+
   function renderSortLabel(label, key) {
     if (sortConfig.key !== key) {
       return `${label} / Sort`;
@@ -253,12 +290,20 @@ function App() {
               <option>N/A</option>
             </select>
 
+            <input
+              ref={csvInputRef}
+              type="file"
+              accept=".csv"
+              style={{ display: 'none' }}
+              onChange={handleCsvImport}
+            />
             <button
               type="button"
               className="exportBtn"
-              onClick={() => window.print()}
+              onClick={() => csvInputRef.current.click()}
+              disabled={importingCsv}
             >
-              Print Table
+              {importingCsv ? 'Importing…' : 'Import Sales'}
             </button>
           </section>
 
