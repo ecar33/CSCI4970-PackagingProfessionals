@@ -55,6 +55,7 @@ function App() {
   const [sortConfig, setSortConfig] = useState({ key: 'description', direction: 'asc' });
   const [drafts, setDrafts] = useState({});
   const [savingSku, setSavingSku] = useState('');
+  const [showOverride, setShowOverride] = useState(false);
   const [importingCsv, setImportingCsv] = useState(false);
   const csvInputRef = React.useRef(null);
 
@@ -305,6 +306,14 @@ function App() {
             >
               {importingCsv ? 'Importing…' : 'Import Sales'}
             </button>
+
+            <button
+              type="button"
+              className={`exportBtn${showOverride ? ' active' : ''}`}
+              onClick={() => setShowOverride((v) => !v)}
+            >
+              {showOverride ? 'Hide Override' : 'Manual Override'}
+            </button>
           </section>
 
           {error && <p className="emptyState" role="alert">{error}</p>}
@@ -340,7 +349,7 @@ function App() {
                         {renderSortLabel('Status', 'status')}
                       </button>
                     </th>
-                    <th>Manual Override</th>
+                    {showOverride && <th>Manual Override</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -353,26 +362,28 @@ function App() {
                       <td>
                         <span className={`status ${item.status.toLowerCase()}`}>{item.status}</span>
                       </td>
-                      <td>
-                        <div className="manualOverride">
-                          <input
-                            type="number"
-                            min="0"
-                            step="1"
-                            value={drafts[item.sku] ?? String(item.item_quantity)}
-                            onChange={(event) => updateDraft(item.sku, event.target.value)}
-                            aria-label={`Manual override for ${item.sku}`}
-                          />
-                          <button
-                            type="button"
-                            className="editBtn"
-                            onClick={() => saveManualOverride(item)}
-                            disabled={savingSku === item.sku}
-                          >
-                            {savingSku === item.sku ? 'Saving...' : 'Save'}
-                          </button>
-                        </div>
-                      </td>
+                      {showOverride && (
+                        <td>
+                          <div className="manualOverride">
+                            <input
+                              type="number"
+                              min="0"
+                              step="1"
+                              value={drafts[item.sku] ?? String(item.item_quantity)}
+                              onChange={(event) => updateDraft(item.sku, event.target.value)}
+                              aria-label={`Manual override for ${item.sku}`}
+                            />
+                            <button
+                              type="button"
+                              className="editBtn"
+                              onClick={() => saveManualOverride(item)}
+                              disabled={savingSku === item.sku}
+                            >
+                              {savingSku === item.sku ? 'Saving...' : 'Save'}
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
