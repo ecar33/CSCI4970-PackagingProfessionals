@@ -7,8 +7,11 @@ An inventory management software for The UPS Store #4166 meant to track sales da
     - Time Till Empty
     - Suggested Reorder Points
     - Customizable Look-back Period, Lead Time, and Safety Stock
-- Automated Testing
+- Automated testing
 - Deployment at the UPS Store #4166
+- ARM64 support
+- Updated documentation
+- Updated visuals
 ## Release Notes v0.2
 - Inventory Database implemented
 - Front-end view updated with sorting, filtering, and manual override
