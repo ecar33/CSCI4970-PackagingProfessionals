@@ -4,7 +4,7 @@ FROM node:20-alpine
 WORKDIR /app
 # Install dependencies
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 # Copy source code and build
 COPY . .
 # Make CRA dev server listen on all interfaces inside container
