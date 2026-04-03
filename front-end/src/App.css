@@ -1,8 +1,8 @@
 :root {
   --ink: #1f2a37;
-  --brand: #0e7a6a;
-  --brand-dark: #085d51;
-  --accent: #f59e0b;
+  --brand: #009cbd;
+  --brand-dark: #007a99;
+  --accent: #ffd101;
   --card: #fefefe;
   --line: #d7dde4;
   --danger: #c53030;
@@ -17,18 +17,16 @@
 body {
   margin: 0;
   font-family: "Avenir Next", "Trebuchet MS", "Segoe UI", sans-serif;
+  font-size: 20px;
   color: var(--ink);
-  background:
-    radial-gradient(circle at 15% 12%, #f3fff9 0%, transparent 38%),
-    radial-gradient(circle at 87% 92%, #fff4d9 0%, transparent 34%),
-    linear-gradient(180deg, #edf7f4 0%, #f7f8fa 60%, #eef3f8 100%);
+  background: radial-gradient(ellipse at 60% 20%, #00b8d9 0%, #009cbd 40%, #007a99 100%);
   min-height: 100vh;
 }
 
 .screen {
-  max-width: 1240px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 24px 18px 42px;
+  padding: 28px 22px 52px;
   animation: fadeUp 300ms ease-out;
 }
 
@@ -37,58 +35,66 @@ body {
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 14px;
+  gap: 16px;
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 16px 18px;
+  border-radius: 16px;
+  padding: 20px 24px;
   box-shadow: 0 8px 26px rgba(30, 46, 71, 0.07);
 }
 
 .eyebrow {
-  margin: 0 0 4px;
+  margin: 0 0 6px;
   font-weight: 700;
   color: #4a5568;
-  font-size: 0.8rem;
+  font-size: 0.95rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
 h1 {
   margin: 0;
-  font-size: 1.7rem;
+  font-size: 2.1rem;
 }
 
 .navMenu {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
 .navMenu button {
   border: 1px solid var(--line);
   background: #fff;
-  padding: 8px 12px;
-  border-radius: 9px;
+  padding: 12px 20px;
+  border-radius: 10px;
   cursor: pointer;
   font-weight: 600;
+  font-size: 1.05rem;
+  transition: background 150ms ease, transform 120ms ease, box-shadow 150ms ease;
+}
+
+.navMenu button:hover {
+  background: #f0f4f8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(30, 46, 71, 0.12);
 }
 
 .navMenu .active {
-  background: #d9f7ef;
-  border-color: #84d8c7;
-  color: var(--brand-dark);
+  background: var(--accent);
+  border-color: #e6bc00;
+  color: var(--ink);
 }
 
 .controls {
-  margin-top: 14px;
+  margin-top: 16px;
   display: grid;
-  grid-template-columns: minmax(220px, 1.4fr) repeat(2, minmax(140px, 1fr)) auto;
-  gap: 10px;
+  grid-template-columns: minmax(240px, 1.4fr) repeat(2, minmax(160px, 1fr)) auto auto;
+  gap: 12px;
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 12px;
+  border-radius: 16px;
+  padding: 14px;
   box-shadow: 0 8px 26px rgba(30, 46, 71, 0.07);
 }
 
@@ -97,14 +103,14 @@ h1 {
   width: 100%;
   border: 1px solid #cfd6df;
   border-radius: 10px;
-  padding: 10px 11px;
-  font-size: 0.95rem;
+  padding: 13px 14px;
+  font-size: 1.05rem;
   background: #fff;
 }
 
 .controls input:focus,
 .controls select:focus {
-  outline: 2px solid #9ae3d7;
+  outline: 2px solid #7fd6e8;
   border-color: var(--brand);
 }
 
@@ -112,22 +118,30 @@ h1 {
 .editBtn {
   border: none;
   border-radius: 10px;
-  padding: 10px 14px;
+  padding: 13px 18px;
   font-weight: 700;
+  font-size: 1.05rem;
   cursor: pointer;
+  transition: background 150ms ease, transform 120ms ease, box-shadow 150ms ease;
 }
 
 .exportBtn {
-  background: linear-gradient(135deg, var(--brand), var(--brand-dark));
-  color: #fff;
+  background: var(--accent);
+  color: var(--ink);
   white-space: nowrap;
 }
 
+.exportBtn:hover:not(:disabled) {
+  background: #e6bc00;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(30, 46, 71, 0.15);
+}
+
 .tableCard {
-  margin-top: 14px;
+  margin-top: 16px;
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 16px;
   overflow: auto;
   box-shadow: 0 8px 26px rgba(30, 46, 71, 0.07);
 }
@@ -141,9 +155,9 @@ table {
 th,
 td {
   border-bottom: 1px solid #ebeff3;
-  padding: 11px 12px;
+  padding: 15px 16px;
   text-align: left;
-  font-size: 0.92rem;
+  font-size: 1.05rem;
 }
 
 th {
@@ -151,7 +165,7 @@ th {
   top: 0;
   z-index: 1;
   background: #f8fbfd;
-  font-size: 0.86rem;
+  font-size: 0.95rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
   color: #425466;
@@ -175,9 +189,9 @@ th {
 
 .status {
   display: inline-block;
-  padding: 4px 8px;
+  padding: 6px 12px;
   border-radius: 999px;
-  font-size: 0.78rem;
+  font-size: 0.92rem;
   font-weight: 700;
 }
 
@@ -197,29 +211,36 @@ th {
 }
 
 .editBtn {
-  background: #eff3f8;
-  color: #31465f;
+  background: var(--accent);
+  color: var(--ink);
+}
+
+.editBtn:hover:not(:disabled) {
+  background: #e6bc00;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(30, 46, 71, 0.15);
 }
 
 .manualOverride {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   align-items: center;
 }
 
 .manualOverride input {
-  width: 90px;
+  width: 100px;
   border: 1px solid #cfd6df;
   border-radius: 8px;
-  padding: 8px 10px;
-  font-size: 0.92rem;
+  padding: 10px 12px;
+  font-size: 1.05rem;
 }
 
 .emptyState {
   margin: 0;
-  padding: 16px;
+  padding: 20px;
   text-align: center;
   color: #607086;
+  font-size: 1.05rem;
 }
 
 @keyframes fadeUp {
@@ -232,6 +253,384 @@ th {
     transform: translateY(0);
   }
 }
+
+/* ── Analytics Dashboard ── */
+
+.analyticsCards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.analyticsCard {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 22px 24px;
+  box-shadow: 0 8px 26px rgba(30, 46, 71, 0.07);
+  text-align: center;
+}
+
+.analyticsCard.cardDanger {
+  background: #fff5f5;
+  border-color: #feb2b2;
+}
+
+.analyticsCard.cardWarn {
+  background: #fffbef;
+  border-color: #fbd38d;
+}
+
+.analyticsCard.cardSafe {
+  background: #f0fff4;
+  border-color: #9ae6b4;
+}
+
+.analyticsCard.cardNeutral {
+  background: #f7fafc;
+  border-color: var(--line);
+}
+
+.cardValue {
+  margin: 0 0 6px;
+  font-size: 2.8rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.cardDanger .cardValue { color: var(--danger); }
+.cardWarn .cardValue   { color: var(--warn); }
+.cardSafe .cardValue   { color: var(--safe); }
+
+.cardLabel {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #607086;
+}
+
+.analyticsParams {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px 18px;
+  box-shadow: 0 8px 26px rgba(30, 46, 71, 0.07);
+}
+
+.paramGroup {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.paramLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #425466;
+}
+
+.paramInput {
+  width: 72px;
+  border: 1px solid #cfd6df;
+  border-radius: 8px;
+  padding: 9px 10px;
+  font-size: 1rem;
+  background: #fff;
+  text-align: center;
+}
+
+.paramInput:focus {
+  outline: 2px solid #7fd6e8;
+  border-color: var(--brand);
+}
+
+.paramUnit {
+  color: #8a9bb0;
+  font-size: 0.95rem;
+}
+
+.analyticsSearch {
+  border: 1px solid #cfd6df;
+  border-radius: 10px;
+  padding: 11px 14px;
+  font-size: 1.05rem;
+  background: #fff;
+  min-width: 240px;
+}
+
+.analyticsSearch:focus {
+  outline: 2px solid #7fd6e8;
+  border-color: var(--brand);
+}
+
+.chartsRow {
+  display: grid;
+  grid-template-columns: 290px 1fr;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.chartCard {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 20px 22px;
+  box-shadow: 0 8px 26px rgba(30, 46, 71, 0.07);
+}
+
+.donutWrap {
+  position: relative;
+}
+
+.donutCenter {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+}
+
+.donutTotal {
+  display: block;
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.donutLabel {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #607086;
+  margin-top: 2px;
+}
+
+.donutLegend {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1rem;
+}
+
+.legendDot {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legendVal {
+  margin-left: auto;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.cssDonut {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  margin: 0 auto 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cssDonutHole {
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  background: var(--card);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.cssBarChart {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.cssBarRow {
+  display: grid;
+  grid-template-columns: 170px 1fr 70px;
+  align-items: center;
+  gap: 12px;
+}
+
+.cssBarName {
+  font-size: 0.97rem;
+  color: #425466;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cssBarTrack {
+  height: 10px;
+  background: #e8ecf0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.cssBarFill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 400ms ease;
+}
+
+.cssBarVal {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #425466;
+  text-align: right;
+}
+
+.daysBarWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 110px;
+}
+
+.daysBarTrack {
+  flex: 1;
+  height: 8px;
+  background: #e8ecf0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.daysBarFill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 300ms ease;
+}
+
+.daysBarLabel {
+  font-size: 0.97rem;
+  font-weight: 600;
+  color: #425466;
+  white-space: nowrap;
+  min-width: 32px;
+}
+
+@media (max-width: 900px) {
+  .chartsRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+.analyticsRow {
+  cursor: pointer;
+  transition: background 120ms;
+}
+
+.analyticsRow:hover {
+  background: #eef9fc;
+}
+
+.detailRow td {
+  padding: 0;
+  background: #f0f9fc;
+  border-bottom: 2px solid #7fd6e8;
+}
+
+.detailPanel {
+  display: flex;
+  gap: 28px;
+  padding: 22px 24px;
+  flex-wrap: wrap;
+}
+
+.detailStats {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.detailStat {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px 20px;
+  min-width: 130px;
+  text-align: center;
+}
+
+.statLabel {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #607086;
+  margin-bottom: 6px;
+}
+
+.statValue {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.detailChart {
+  flex: 1;
+  min-width: 280px;
+}
+
+.chartTitle {
+  margin: 0 0 10px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #607086;
+}
+
+@media (max-width: 900px) {
+  .analyticsCards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .analyticsCards {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ── End Analytics ── */
 
 @media (max-width: 1020px) {
   .controls {
@@ -249,6 +648,6 @@ th {
   }
 
   h1 {
-    font-size: 1.35rem;
+    font-size: 1.6rem;
   }
 }
