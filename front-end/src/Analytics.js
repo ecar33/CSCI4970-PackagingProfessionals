@@ -110,8 +110,8 @@ function HistoryChart({ sku, days }) {
 }
 
 /** Primary function: Displays the page. Shows a pie chart of number of SKUs and how many are approaching needing an order, and how many need an order. 
-The items with the highest use rate are displayed.
-Every item has its own row that can be expanded to show greater information and display a line chart showing changes in inventory over the time span the user inputs. */
+* The items with the highest use rate are displayed.
+* Every item has its own row that can be expanded to show greater information and display a line chart showing changes in inventory over the time span the user inputs. */
 function Analytics() {
   const [analytics, setAnalytics] = useState([]);
   const [loading, setLoading] = useState(true);

@@ -1,4 +1,32 @@
-/** This file is code for the main page for the Inventory page for the UPS Store app */
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: App.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: App.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/** This file is code for the main page for the Inventory page for the UPS Store app */
 import React, { useEffect, useMemo, useState } from 'react';
 import './App.css';
 import Analytics from './Analytics';
@@ -22,11 +50,11 @@ function sizeFromDescription(description) {
 
 /** Returns status from critical to healthy based on quantity of inventory items */
 function statusFromQuantity(quantity) {
-  if (quantity <= 0) {
+  if (quantity &lt;= 0) {
     return 'Critical';
   }
 
-  if (quantity <= 10) {
+  if (quantity &lt;= 10) {
     return 'Low';
   }
 
@@ -38,7 +66,7 @@ function compareValues(a, b, direction) {
     return 0;
   }
 
-  if (typeof a === 'number' && typeof b === 'number') {
+  if (typeof a === 'number' &amp;&amp; typeof b === 'number') {
     return direction === 'asc' ? a - b : b - a;
   }
 
@@ -135,7 +163,7 @@ function App() {
 
       const matchesSize = sizeFilter === 'All Sizes' || item.size === sizeFilter;
 
-      return matchesSearch && matchesStatus && matchesSize;
+      return matchesSearch &amp;&amp; matchesStatus &amp;&amp; matchesSize;
     });
 
     return [...visibleInventory].sort((left, right) => {
@@ -178,7 +206,7 @@ function App() {
     const draftValue = drafts[item.sku];
     const nextQuantity = draftValue === undefined ? item.item_quantity : Number(draftValue);
 
-    if (!Number.isInteger(nextQuantity) || nextQuantity < 0) {
+    if (!Number.isInteger(nextQuantity) || nextQuantity &lt; 0) {
       setError(`Manual override for ${item.sku} must be a non-negative integer.`);
       return;
     }
@@ -259,24 +287,24 @@ function App() {
   }
 
   return (
-    <div className="screen">
-      <header className="topBar">
-        <div>
-          <p className="eyebrow">The UPS Store #4166</p>
-          <h1>{view === 'analytics' ? 'Analytics' : 'Inventory Table'}</h1>
-        </div>
-        <nav className="navMenu" aria-label="Main navigation">
-          <button type="button" className={view === 'analytics' ? 'active' : ''} onClick={() => setView('analytics')}>Analytics</button>
-          <button type="button" className={view === 'inventory' ? 'active' : ''} onClick={() => setView('inventory')}>Inventory</button>
-        </nav>
-      </header>
+    &lt;div className="screen">
+      &lt;header className="topBar">
+        &lt;div>
+          &lt;p className="eyebrow">The UPS Store #4166&lt;/p>
+          &lt;h1>{view === 'analytics' ? 'Analytics' : 'Inventory Table'}&lt;/h1>
+        &lt;/div>
+        &lt;nav className="navMenu" aria-label="Main navigation">
+          &lt;button type="button" className={view === 'analytics' ? 'active' : ''} onClick={() => setView('analytics')}>Analytics&lt;/button>
+          &lt;button type="button" className={view === 'inventory' ? 'active' : ''} onClick={() => setView('inventory')}>Inventory&lt;/button>
+        &lt;/nav>
+      &lt;/header>
 
-      {view === 'analytics' && <Analytics />}
+      {view === 'analytics' &amp;&amp; &lt;Analytics />}
 
-      {view === 'inventory' && (
-        <>
-          <section className="controls" aria-label="Search and filters">
-            <input
+      {view === 'inventory' &amp;&amp; (
+        &lt;>
+          &lt;section className="controls" aria-label="Search and filters">
+            &lt;input
               type="search"
               placeholder="Search SKU or description"
               value={searchTerm}
@@ -284,102 +312,102 @@ function App() {
               aria-label="Search inventory"
             />
 
-            <select
+            &lt;select
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value)}
               aria-label="Filter by status"
             >
               {statusOptions.map((status) => (
-                <option key={status} value={status}>{status}</option>
+                &lt;option key={status} value={status}>{status}&lt;/option>
               ))}
-            </select>
+            &lt;/select>
 
-            <select
+            &lt;select
               value={sizeFilter}
               onChange={(event) => setSizeFilter(event.target.value)}
               aria-label="Filter by size"
             >
-              <option>All Sizes</option>
-              <option>Small</option>
-              <option>Large</option>
-              <option>N/A</option>
-            </select>
+              &lt;option>All Sizes&lt;/option>
+              &lt;option>Small&lt;/option>
+              &lt;option>Large&lt;/option>
+              &lt;option>N/A&lt;/option>
+            &lt;/select>
 
-            <input
+            &lt;input
               ref={csvInputRef}
               type="file"
               accept=".csv"
               style={{ display: 'none' }}
               onChange={handleCsvImport}
             />
-            <button
+            &lt;button
               type="button"
               className="exportBtn"
               onClick={() => csvInputRef.current.click()}
               disabled={importingCsv}
             >
               {importingCsv ? 'Importing…' : 'Import Sales'}
-            </button>
+            &lt;/button>
 
-            <button
+            &lt;button
               type="button"
               className={`exportBtn${showOverride ? ' active' : ''}`}
               onClick={() => setShowOverride((v) => !v)}
             >
               {showOverride ? 'Hide Override' : 'Manual Override'}
-            </button>
-          </section>
+            &lt;/button>
+          &lt;/section>
 
-          {error && <p className="emptyState" role="alert">{error}</p>}
-          {loading && <p className="emptyState">Loading inventory...</p>}
+          {error &amp;&amp; &lt;p className="emptyState" role="alert">{error}&lt;/p>}
+          {loading &amp;&amp; &lt;p className="emptyState">Loading inventory...&lt;/p>}
 
-          {!loading && (
-            <section className="tableCard">
-              <table>
-                <thead>
-                  <tr>
-                    <th>
-                      <button type="button" className="sortButton" onClick={() => toggleSort('sku')}>
+          {!loading &amp;&amp; (
+            &lt;section className="tableCard">
+              &lt;table>
+                &lt;thead>
+                  &lt;tr>
+                    &lt;th>
+                      &lt;button type="button" className="sortButton" onClick={() => toggleSort('sku')}>
                         {renderSortLabel('SKU', 'sku')}
-                      </button>
-                    </th>
-                    <th>
-                      <button type="button" className="sortButton" onClick={() => toggleSort('description')}>
+                      &lt;/button>
+                    &lt;/th>
+                    &lt;th>
+                      &lt;button type="button" className="sortButton" onClick={() => toggleSort('description')}>
                         {renderSortLabel('Product', 'description')}
-                      </button>
-                    </th>
-                    <th>
-                      <button type="button" className="sortButton" onClick={() => toggleSort('item_quantity')}>
+                      &lt;/button>
+                    &lt;/th>
+                    &lt;th>
+                      &lt;button type="button" className="sortButton" onClick={() => toggleSort('item_quantity')}>
                         {renderSortLabel('On-hand', 'item_quantity')}
-                      </button>
-                    </th>
-                    <th>
-                      <button type="button" className="sortButton" onClick={() => toggleSort('return_quantity')}>
+                      &lt;/button>
+                    &lt;/th>
+                    &lt;th>
+                      &lt;button type="button" className="sortButton" onClick={() => toggleSort('return_quantity')}>
                         {renderSortLabel('Returns', 'return_quantity')}
-                      </button>
-                    </th>
-                    <th>
-                      <button type="button" className="sortButton" onClick={() => toggleSort('status')}>
+                      &lt;/button>
+                    &lt;/th>
+                    &lt;th>
+                      &lt;button type="button" className="sortButton" onClick={() => toggleSort('status')}>
                         {renderSortLabel('Status', 'status')}
-                      </button>
-                    </th>
-                    {showOverride && <th>Manual Override</th>}
-                  </tr>
-                </thead>
-                <tbody>
+                      &lt;/button>
+                    &lt;/th>
+                    {showOverride &amp;&amp; &lt;th>Manual Override&lt;/th>}
+                  &lt;/tr>
+                &lt;/thead>
+                &lt;tbody>
                   {filteredInventory.map((item) => (
-                    <tr key={item.sku} className={item.status !== 'Healthy' ? 'warningRow' : ''}>
-                      <td>{item.sku}</td>
-                      <td>{item.description}</td>
-                      <td>{item.item_quantity}</td>
-                      <td>{item.return_quantity}</td>
-                      <td>
-                        <span className={`status ${item.status.toLowerCase()}`}>{item.status}</span>
-                      </td>
-                      {showOverride && (
-                        <td>
-                          <div className="manualOverride">
-                            <input
+                    &lt;tr key={item.sku} className={item.status !== 'Healthy' ? 'warningRow' : ''}>
+                      &lt;td>{item.sku}&lt;/td>
+                      &lt;td>{item.description}&lt;/td>
+                      &lt;td>{item.item_quantity}&lt;/td>
+                      &lt;td>{item.return_quantity}&lt;/td>
+                      &lt;td>
+                        &lt;span className={`status ${item.status.toLowerCase()}`}>{item.status}&lt;/span>
+                      &lt;/td>
+                      {showOverride &amp;&amp; (
+                        &lt;td>
+                          &lt;div className="manualOverride">
+                            &lt;input
                               type="number"
                               min="0"
                               step="1"
@@ -387,31 +415,54 @@ function App() {
                               onChange={(event) => updateDraft(item.sku, event.target.value)}
                               aria-label={`Manual override for ${item.sku}`}
                             />
-                            <button
+                            &lt;button
                               type="button"
                               className="editBtn"
                               onClick={() => saveManualOverride(item)}
                               disabled={savingSku === item.sku}
                             >
                               {savingSku === item.sku ? 'Saving...' : 'Save'}
-                            </button>
-                          </div>
-                        </td>
+                            &lt;/button>
+                          &lt;/div>
+                        &lt;/td>
                       )}
-                    </tr>
+                    &lt;/tr>
                   ))}
-                </tbody>
-              </table>
+                &lt;/tbody>
+              &lt;/table>
 
-              {filteredInventory.length === 0 && (
-                <p className="emptyState">No products match your search and filter selection.</p>
+              {filteredInventory.length === 0 &amp;&amp; (
+                &lt;p className="emptyState">No products match your search and filter selection.&lt;/p>
               )}
-            </section>
+            &lt;/section>
           )}
-        </>
+        &lt;/>
       )}
-    </div>
+    &lt;/div>
   );
 }
 
 export default App;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#Analytics">Analytics</a></li><li><a href="global.html#App">App</a></li><li><a href="global.html#DaysBar">DaysBar</a></li><li><a href="global.html#HistoryChart">HistoryChart</a></li><li><a href="global.html#formatDays">formatDays</a></li><li><a href="global.html#formatRate">formatRate</a></li><li><a href="global.html#sizeFromDescription">sizeFromDescription</a></li><li><a href="global.html#statusFromQuantity">statusFromQuantity</a></li><li><a href="global.html#urgencyFromItem">urgencyFromItem</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Tue Apr 07 2026 18:28:00 GMT-0500 (Central Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
