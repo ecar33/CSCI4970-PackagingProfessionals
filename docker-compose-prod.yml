@@ -1,19 +1,27 @@
-﻿services:
+services:
   backend:
     image: raycronin/packaging-professionals-capstone-backend:latest
-    ports:
-      - "5000:5000"
+    expose:
+      - "5000"
     volumes:
-        - backend-data:/app/data
-        - /Order-Summaries:/app/orders
-        - /Count-Sheets:/app/counts
+      - backend-data:/app/data
+      - /Order-Summaries:/app/orders
+      - /Count-Sheets:/app/counts
+    networks:
+      - app-network
 
   frontend:
     image: raycronin/packaging-professionals-capstone-frontend:latest
-    ports:
-      - "3000:3000"
+    expose:
+      - "80"
     depends_on:
       - backend
-# Need to map volumes for persistent data storage for the backend
-    volumes:
-      backend-data:
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  backend-data:
