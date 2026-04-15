@@ -171,11 +171,7 @@ function App() {
   }, [inventory, searchTerm, sizeFilter, sortConfig, statusFilter]);
 
 
-	const visibleDate = lastScan.map((scanTime) => {
-		const recentScan = scanTime[0].timestamp;
-		
-		return recentScan
-	});
+const visibleDate = lastScan.timestamp;
 
   function toggleSort(key) {
     setSortConfig((current) => {
@@ -284,8 +280,8 @@ function App() {
     return `${label} / ${sortConfig.direction === 'asc' ? 'Asc' : 'Desc'}`;
   }
   
-   function lastInvUpdate() {
-		return <h1>Last document scanned: {visibleDate}</h1>;
+   function LastInvUpdate() {
+		return <p className="eyebrow">Last document scanned: {visibleDate}</p>;
 }
 
   return (
@@ -294,7 +290,7 @@ function App() {
         <div>
           <p className="eyebrow">The UPS Store #4166</p>
           <h1>{view === 'analytics' ? 'Analytics' : 'Inventory Table'}</h1>
-			  {view === 'inventory' && <lastInvUpdate/> }
+			  {view === 'inventory' && <LastInvUpdate/> }
         </div>
         <nav className="navMenu" aria-label="Main navigation">
           <button type="button" className={view === 'analytics' ? 'active' : ''} onClick={() => setView('analytics')}>Analytics</button>
