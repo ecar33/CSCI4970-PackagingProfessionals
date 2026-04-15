@@ -1,6 +1,6 @@
 """
 Unit tests for csv_parser.parse_sales_csv.
-No database or Flask app needed — pure logic tests.
+No database or Flask app needed — pure logic tests on CSV parsing and field extraction.
 """
 import io
 import sys
