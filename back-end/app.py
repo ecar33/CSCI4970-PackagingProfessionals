@@ -148,7 +148,6 @@ def on_new_order(filename, text, boxes):
     logger.info(f"Stored OCR result for {filename} ({len(text)} chars, {len(boxes)} box types)")
     increment_inventory_from_boxes(boxes)
 
-    
 def serialize_last_scan(lastlogscan):
     """
         @brief Function to serialize the inventorylog entry with the highest timestamp
@@ -169,7 +168,6 @@ def serialize_last_scan(lastlogscan):
             "note" : lastlogscan[0].note
         } 
     
-
 @app.get("/api/health")
 def health():
     """
@@ -186,7 +184,6 @@ def get_inventory():
         """
     items = db.session.query(Inventory).order_by(Inventory.description.asc()).all()
     return jsonify([serialize_inventory_item(item) for item in items])
-
 
 @app.patch("/api/inventory/<sku>")
 def update_inventory_item(sku):
@@ -238,7 +235,6 @@ def analytics_all():
     data = get_all_analytics(days, lead_time, safety_stock)
     return jsonify(data)
 
-
 @app.get("/api/analytics/<sku>")
 def analytics_sku(sku):
     """
@@ -279,7 +275,6 @@ def analytics_history(sku):
     history = get_inventory_history(sku, days)
     return jsonify(history)
     
-
 @app.get("/api/lastscan")
 def last_scan():
     """
@@ -288,13 +283,9 @@ def last_scan():
     @return A JSON object sorted so that the most recent timestamp is first
     """
     
-    last_update = db.session.query(InventoryLog).order_by(InventoryLog.timestamp.desc()).all()
-    
-    
+    last_update = db.session.query(InventoryLog).order_by(InventoryLog.timestamp.desc()).first()
     
     return jsonify(serialize_last_scan(last_update))
-    
-    
 
 @app.get("/api/ocr/orders")
 def ocr_all_orders():
