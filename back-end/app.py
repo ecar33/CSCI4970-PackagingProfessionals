@@ -160,13 +160,13 @@ def serialize_last_scan(lastlogscan):
         return { "timestamp" : 'None' }
     else:
         return {
-            "id" : lastlogscan.id[0],
-            "sku" : lastlogscan.sku[0],
-            "change_type": lastlogscan.change_type[0],
-            "quantity_change" : lastlogscan.quantity_change[0],
-            "quantity_after": lastlogscan.quantity_after[0],
-            "timestamp" : lastlogscan.timestamp[0],
-            "note" : lastlogscan.note[0]
+            "id" : lastlogscan[0].id,
+            "sku" : lastlogscan[0].sku,
+            "change_type": lastlogscan[0].change_type,
+            "quantity_change" : lastlogscan[0].quantity_change,
+            "quantity_after": lastlogscan[0].quantity_after,
+            "timestamp" : lastlogscan[0].timestamp,
+            "note" : lastlogscan[0].note
         } 
     
 
