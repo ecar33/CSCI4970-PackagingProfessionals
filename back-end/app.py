@@ -148,6 +148,28 @@ def on_new_order(filename, text, boxes):
     logger.info(f"Stored OCR result for {filename} ({len(text)} chars, {len(boxes)} box types)")
     increment_inventory_from_boxes(boxes)
 
+    
+def serialize_last_scan(lastlogscan):
+    """
+        @brief Function to serialize the inventorylog entry with the highest timestamp
+        
+        @param lastlogscan The row containing the most recent inventory log update that was not manual
+        
+        """
+    if len(lastlogscan) == 0:
+        return { "timestamp" : 'None' }
+    else:
+        return {
+            "id" : lastlogscan.id[0],
+            "sku" : lastlogscan.sku[0],
+            "change_type": lastlogscan.change_type[0],
+            "quantity_change" : lastlogscan.quantity_change[0],
+            "quantity_after": lastlogscan.quantity_after[0],
+            "timestamp" : lastlogscan.timestamp[0],
+            "note" : lastlogscan.note[0]
+        } 
+    
+
 @app.get("/api/health")
 def health():
     """
@@ -256,7 +278,23 @@ def analytics_history(sku):
     days = request.args.get("days", 30, type=int)
     history = get_inventory_history(sku, days)
     return jsonify(history)
+    
 
+@app.get("/api/lastscan")
+def last_scan():
+    """
+    @brief endpoint to return the most recent timestamp
+    
+    @return A JSON object sorted so that the most recent timestamp is first
+    """
+    
+    last_update = db.session.query(InventoryLog).order_by(InventoryLog.timestamp.desc()).all()
+    
+    
+    
+    return jsonify(serialize_last_scan(last_update))
+    
+    
 
 @app.get("/api/ocr/orders")
 def ocr_all_orders():
