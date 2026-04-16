@@ -1,11 +1,11 @@
 ﻿# back-end/watcher.py
 import os
-import re
 import time
 import logging
 from watchdog.observers.polling import PollingObserver
 from watchdog.events import FileSystemEventHandler
 from ocr import extract_text_from_pdf, parse_boxes_from_text
+from csv_parser import parse_count_sheet_csv
 
 logger = logging.getLogger(__name__)
 
@@ -78,16 +78,13 @@ class OrderFileHandler(_BaseFileHandler):
 
 class CountSheetHandler(_BaseFileHandler):
     """
-        @brief File system event handler that processes count sheet PDFs to extract the
-        18x18x18 box usage count from what was originally cell H12 of the Excel sheet.
+        @brief File system event handler that processes count sheet CSV files to extract the
+        18x18x18 box usage count from cell H12.
         If the value cannot be found (e.g. employee forgot to fill it in), the file is
         logged and skipped gracefully.
 
         @param callback Function to call with (filename, count) when a valid count is parsed.
         """
-
-    # The count sheet is a single-page Excel→PDF.  Cell H12 is the last
-    # column of the row that contains the 18 cubed usage.
 
     def __init__(self, callback):
         super().__init__()
@@ -96,15 +93,14 @@ class CountSheetHandler(_BaseFileHandler):
     def on_created(self, event):
         if event.is_directory:
             return
-        if not event.src_path.lower().endswith(".pdf"):
+        if not event.src_path.lower().endswith(".csv"):
             return
 
         logger.info(f"New count sheet detected: {event.src_path}")
         self._wait_for_file_ready(event.src_path)
 
         try:
-            text = extract_text_from_pdf(event.src_path)
-            count = self._parse_count(text)
+            count = parse_count_sheet_csv(event.src_path)
             filename = os.path.basename(event.src_path)
 
             if count is None:
@@ -119,48 +115,6 @@ class CountSheetHandler(_BaseFileHandler):
         except Exception as e:
             logger.error(f"Failed processing count sheet {event.src_path}: {e}", exc_info=True)
 
-    @staticmethod
-    def _parse_count(text):
-        """
-            @brief Extract the 18x18x18 box usage count from OCR text of a count sheet.
-            The value lives in what was cell H12 (last column of the row).
-
-            The target row starts with "$    20" (the $20 denomination row) in column A.
-            Columns B, D, F contain either "$    x0.00" (a multiple of 20) or "$    -".
-            Columns C, E, G are always empty.  Column H (the last value) is the box count.
-
-            @param text Full OCR text from the count sheet PDF
-            @return The usage count as an int, or None if it could not be determined.
-            """
-        for line in text.split("\n"):
-            stripped = line.strip()
-            # Look for the $20 denomination row — starts with $ followed by "20"
-            # OCR may render it as "$    20", "$20", "$ 20", etc.
-            if not re.match(r'^\$\s*20\b', stripped):
-                continue
-
-            # Found the target row. The box count is the last number on this line.
-            numbers = re.findall(r'\d+', stripped)
-            if not numbers:
-                return None
-
-            # The last number on this line is the box usage count (column H)
-            value = int(numbers[-1])
-
-            # Sanity: "20" itself appears as the denomination; if the only number
-            # is 20 then the employee likely left the count blank.
-            if len(numbers) == 1 and value == 20:
-                return None
-
-            # Guard against picking up an unreasonably large value
-            if value > 80:
-                logger.warning(f"Parsed count {value} seems unusually high, skipping.")
-                return None
-
-            return value
-
-        # No line matched the $20 pattern
-        return None
 
 
 def start_watcher(orders_dir, callback):
