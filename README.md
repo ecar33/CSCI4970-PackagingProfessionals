@@ -1,7 +1,7 @@
 # CSCI4970-PackagingProfessionals
 An inventory management software for The UPS Store #4166 meant to track sales data and incoming order summaries to provide an accurate overview of current inventory stock and trends.
 ## Release Notes v.04
-- Full deployment at The UPS Store #4166 using Cloudflare Tunnel to bypass network restrictions
+- Full deployment at The UPS Store #4166 using Cloudflare Tunnel to facilitate outbound connections
 - Watchtower for automatic updates at the store
 - Manual delete function for specific SKUs
 - Increased automated testing coverage
