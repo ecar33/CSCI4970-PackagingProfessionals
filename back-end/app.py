@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 from ocr import extract_text_from_pdf, process_all_orders, parse_boxes_from_text, process_order_pdf
 from csv_parser import parse_sales_csv
-from watcher import start_watcher
+from watcher import start_watcher, start_count_watcher
 from databasemake import db, init_db, Inventory, InventoryLog, log_inventory_change
 from analytics import (
     get_usage_rate,
@@ -24,6 +24,7 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 init_db(app)
 
 ORDERS_DIR = "/app/orders"
+COUNTS_DIR = "/app/counts"
 # Store OCR results in memory (replace with DB later)
 ocr_results = {}
 
@@ -342,9 +343,38 @@ def upload_csv():
     logger.info(f"Parsed uploaded CSV {file.filename} ({len(items)} items)")
     return jsonify({"file": file.filename, "items": items})
 
+def on_new_count_sheet(filename, count):
+    """
+        @brief Callback for count sheet watcher. Decrements the 18x18x18 box inventory
+        by the usage count extracted from the daily count sheet.
+
+        @param filename The name of the count sheet PDF
+        @param count The number of 18x18x18 boxes used (from cell H12)
+        """
+    with app.app_context():
+        item = db.session.query(Inventory).filter(
+            Inventory.description.ilike("%18x18x18%")
+        ).first()
+
+        if item is None:
+            logger.warning("No inventory item found matching '18x18x18' — skipping count sheet.")
+            return
+
+        item.item_quantity = max(0, item.item_quantity - count)
+        log_inventory_change(
+            sku=item.sku,
+            change_type="sale",
+            quantity_change=-count,
+            quantity_after=item.item_quantity,
+            note=f"Count sheet {filename}: 18x18x18 used x{count}",
+        )
+        db.session.commit()
+        logger.info(f"Decremented SKU {item.sku} by {count} from count sheet {filename}")
+
 # Start the file watcher at module load time so it runs regardless of
 # how Flask is launched (python app.py, flask run, gunicorn, etc.)
 observer = start_watcher(ORDERS_DIR, on_new_order)
+count_observer = start_count_watcher(COUNTS_DIR, on_new_count_sheet)
 
 if __name__ == "__main__":
     try:
@@ -352,3 +382,5 @@ if __name__ == "__main__":
     finally:
         observer.stop()
         observer.join()
+        count_observer.stop()
+        count_observer.join()
