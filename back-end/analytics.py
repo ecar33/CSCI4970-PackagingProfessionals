@@ -12,7 +12,6 @@ logger = logging.getLogger(__name__)
 # Default assumed delivery lead time in days (can be overridden per request)
 DEFAULT_LEAD_TIME_DAYS = 5
 
-
 def get_usage_rate(sku: str, days: int = 30) -> dict:
     """
     @brief Compute the average daily usage rate for a single SKU over the
