@@ -204,6 +204,31 @@ def update_inventory_item(sku):
     db.session.commit()
     return jsonify(serialize_inventory_item(item))
 
+
+@app.delete("/api/inventory/<sku>")
+def delete_inventory_item(sku):
+    """
+        @brief Endpoint to delete an inventory item by SKU.
+
+        @param sku The SKU of the inventory item to delete, provided as a URL parameter
+
+        @return A JSON success message, or an error message if the item is not found
+        """
+    item = db.session.get(Inventory, sku)
+    if item is None:
+        return jsonify(error="Inventory item not found"), 404
+
+    db.session.delete(item)
+    log_inventory_change(
+        sku=sku, change_type="delete",
+        quantity_change=-item.item_quantity,
+        quantity_after=0,
+        note="Item deleted via API",
+    )
+    db.session.commit()
+    return jsonify(message=f"Item {sku} deleted successfully")
+
+
 @app.get("/api/analytics")
 def analytics_all():
     """
