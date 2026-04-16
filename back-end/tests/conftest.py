@@ -4,8 +4,9 @@ from unittest.mock import MagicMock, patch
 # Must be set before app.py is imported — it reads this at module load time
 os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 
-# Patch the watcher before import so it doesn't try to watch /app/orders
-with patch("watcher.start_watcher", return_value=MagicMock()):
+# Patch both watchers before import so they don't try to create /app/orders or /app/counts
+with patch("watcher.start_watcher", return_value=MagicMock()), \
+     patch("watcher.start_count_watcher", return_value=MagicMock()):
     from app import app as flask_app
 
 import pytest
