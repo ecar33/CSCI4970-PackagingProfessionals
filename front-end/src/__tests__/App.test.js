@@ -49,6 +49,9 @@ test('renders inventory from the backend', async () => {
 test('saves a manual override through the backend', async () => {
   render(<App />);
 
+  await screen.findByText('12x12x12 Box');
+  userEvent.click(screen.getByRole('button', { name: /manual override/i }));
+
   const overrideInput = await screen.findByLabelText(/manual override for 10005/i);
   userEvent.clear(overrideInput);
   userEvent.type(overrideInput, '15');
