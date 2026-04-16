@@ -55,6 +55,7 @@ function App() {
   const [sortConfig, setSortConfig] = useState({ key: 'description', direction: 'asc' });
   const [drafts, setDrafts] = useState({});
   const [savingSku, setSavingSku] = useState('');
+  const [deletingSku, setDeletingSku] = useState('');
   const [showOverride, setShowOverride] = useState(false);
   const [importingCsv, setImportingCsv] = useState(false);
   const csvInputRef = React.useRef(null);
@@ -198,6 +199,37 @@ function App() {
       setError(requestError.message);
     } finally {
       setSavingSku('');
+    }
+  }
+
+  async function deleteInventoryItem(item) {
+    if (!window.confirm(`Are you sure you want to delete this item from the table?`)) {
+      return;
+    }
+
+    setDeletingSku(item.sku);
+    setError('');
+
+    try {
+      const response = await fetch(`/api/inventory/${item.sku}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error || `Delete failed with ${response.status}`);
+      }
+
+      setInventory((current) => current.filter((entry) => entry.sku !== item.sku));
+      setDrafts((current) => {
+        const next = { ...current };
+        delete next[item.sku];
+        return next;
+      });
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setDeletingSku('');
     }
   }
 
@@ -380,6 +412,14 @@ function App() {
                               disabled={savingSku === item.sku}
                             >
                               {savingSku === item.sku ? 'Saving...' : 'Save'}
+                            </button>
+                            <button
+                              type="button"
+                              className="deleteBtn"
+                              onClick={() => deleteInventoryItem(item)}
+                              disabled={deletingSku === item.sku}
+                            >
+                              {deletingSku === item.sku ? 'Deleting...' : 'Delete'}
                             </button>
                           </div>
                         </td>

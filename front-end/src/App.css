@@ -221,6 +221,29 @@ th {
   box-shadow: 0 4px 12px rgba(30, 46, 71, 0.15);
 }
 
+.deleteBtn {
+  border: none;
+  border-radius: 10px;
+  padding: 13px 18px;
+  font-weight: 700;
+  font-size: 1.05rem;
+  cursor: pointer;
+  background: var(--danger);
+  color: #fff;
+  transition: background 150ms ease, transform 120ms ease, box-shadow 150ms ease;
+}
+
+.deleteBtn:hover:not(:disabled) {
+  background: #9b2c2c;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(197, 48, 48, 0.3);
+}
+
+.deleteBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .manualOverride {
   display: flex;
   gap: 10px;
