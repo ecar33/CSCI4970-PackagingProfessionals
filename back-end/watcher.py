@@ -200,7 +200,7 @@ def start_count_watcher(counts_dir, callback):
 
     handler = CountSheetHandler(callback)
     observer = PollingObserver()
-    observer.schedule(handler, counts_dir, recursive=False)
+    observer.schedule(handler, counts_dir, recursive=True)
     observer.daemon = True
     observer.start()
     logger.info(f"Watching {counts_dir} for new count sheets...")
