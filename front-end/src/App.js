@@ -47,6 +47,7 @@ function compareValues(a, b, direction) {
 function App() {
   const [view, setView] = useState('inventory');
   const [inventory, setInventory] = useState([]);
+  const [lastScan, setLastScan] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -94,6 +95,38 @@ function App() {
       isMounted = false;
     };
   }, []);
+  
+ // get last scan date 
+  useEffect(() => {
+	  let isMounted = true;
+	  
+	  async function loadLastScan() {
+		  setLoading(true);
+		  setError('');
+		  
+		  try { const response = await fetch('/api/lastscan');
+		  
+		  const scanData = await response.json();
+		  if (isMounted) {
+			  setLastScan(scanData);
+		  }
+	  } catch (requestError) {
+		  if (isMounted) {
+			  setError(requestError.message);
+		  }
+	  } finally {
+		  if (isMounted) {
+			  setLoading(false);
+		  }
+	  }
+  }
+  
+  loadLastScan();
+  return () => {
+	  isMounted = false;
+  };
+}, []);
+			  
 
   const statusOptions = ['All Statuses', ...STATUS_ORDER];
 
@@ -137,6 +170,9 @@ function App() {
       return compareValues(left[sortConfig.key], right[sortConfig.key], sortConfig.direction);
     });
   }, [inventory, searchTerm, sizeFilter, sortConfig, statusFilter]);
+
+
+const visibleDate = lastScan.timestamp;
 
   function toggleSort(key) {
     setSortConfig((current) => {
@@ -275,6 +311,10 @@ function App() {
 
     return `${label} / ${sortConfig.direction === 'asc' ? 'Asc' : 'Desc'}`;
   }
+  
+   function LastInvUpdate() {
+		return <p className="eyebrow">Last document scanned: {visibleDate}</p>;
+}
 
   return (
     <div className="screen">
@@ -282,6 +322,7 @@ function App() {
         <div>
           <p className="eyebrow">The UPS Store #4166</p>
           <h1>{view === 'analytics' ? 'Analytics' : 'Inventory Table'}</h1>
+			  {view === 'inventory' && <LastInvUpdate/> }
         </div>
         <nav className="navMenu" aria-label="Main navigation">
           <button type="button" className={view === 'analytics' ? 'active' : ''} onClick={() => setView('analytics')}>Analytics</button>
@@ -290,6 +331,7 @@ function App() {
       </header>
 
       {view === 'analytics' && <Analytics />}
+
 
       {view === 'inventory' && (
         <>
