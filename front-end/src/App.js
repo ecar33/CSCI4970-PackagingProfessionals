@@ -171,7 +171,12 @@ function App() {
   }, [inventory, searchTerm, sizeFilter, sortConfig, statusFilter]);
 
 
-const visibleDate = lastScan.timestamp;
+const visibleDate = lastScan.timestamp
+  ? new Date(lastScan.timestamp).toLocaleString('en-US', {
+      month: 'short', day: 'numeric', year: 'numeric',
+      hour: 'numeric', minute: '2-digit', hour12: true,
+    })
+  : null;
 
   function toggleSort(key) {
     setSortConfig((current) => {
