@@ -4,6 +4,7 @@ An inventory management software for The UPS Store #4166 meant to track sales da
 - Full deployment at The UPS Store #4166 using Cloudflare Tunnel to facilitate outbound connections
 - Watchtower for automatic updates at the store
 - Manual delete function for specific SKUs
+- Automatic count sheet parsing
 - Increased automated testing coverage
 - Last import timestamp/reminder
 - Served with nginx instead of usinga dev server
