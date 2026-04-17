@@ -1,5 +1,47 @@
 # CSCI4970-PackagingProfessionals
 An inventory management software for The UPS Store #4166 meant to track sales data and incoming order summaries to provide an accurate overview of current inventory stock and trends.
+
+```mermaid
+graph TD
+    subgraph Client
+        Browser
+    end
+
+    subgraph frontend["Frontend Container"]
+        Nginx
+        React
+    end
+
+    subgraph backend["Backend Container"]
+        Flask
+        OCR["OCR (Tesseract)"]
+        OrderWatcher["OrderFileHandler<br/>(PollingObserver)"]
+        CountWatcher["CountSheetHandler<br/>(PollingObserver)"]
+        CSVParser["parse_sales_csv"]
+        DB[(SQLite)]
+    end
+
+    subgraph host["Host Volumes"]
+        Orders["/app/orders<br/>(Order PDFs)"]
+        Counts["/app/counts<br/>(Count CSVs)"]
+    end
+
+    Browser -->|HTTPS| Cloudflare
+    Cloudflare -->|Tunnel| Nginx
+    Nginx -->|Static files| React
+    Nginx -->|/api/ proxy| Flask
+
+    Flask -->|reads/writes| DB
+    Flask -->|upload| CSVParser --> DB
+
+    Orders -->|file created| OrderWatcher
+    OrderWatcher --> OCR --> Flask
+
+    Counts -->|file created| CountWatcher
+    CountWatcher --> CSVParser
+    CountWatcher --> DB
+```
+
 ## Release Notes v.04
 - Full deployment at The UPS Store #4166 using Cloudflare Tunnel to facilitate outbound connections
 - Watchtower for automatic updates at the store
