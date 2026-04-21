@@ -1,6 +1,7 @@
 # CSCI4970-PackagingProfessionals
 An inventory management software for The UPS Store #4166 meant to track sales data and incoming order summaries to provide an accurate overview of current inventory stock and trends.
 
+Architecture
 ```mermaid
 graph TD
     subgraph Client
@@ -40,6 +41,26 @@ graph TD
     Counts -->|file created| CountWatcher
     CountWatcher --> CSVParser
     CountWatcher --> DB
+```
+
+Deployment Model
+```mermaid
+flowchart TD
+    A[👨‍💻 Developer\nPushes to main] --> B
+
+    B[⚙️ GitHub Actions\nRun tests] --> C
+
+    C{Tests pass?}
+    C -- No --> D[❌ Build fails\nDeveloper notified]
+    C -- Yes --> E
+
+    E[🐳 Build Docker Image] --> F
+
+    F[📦 Push Image\nto DockerHub] --> G
+
+    G[👁️ Watchtower\non UPS Store NAS\nDetects new image] --> H
+
+    H[🔄 Automatically pulls\nnew image & restarts\ncontainers]
 ```
 
 ## Release Notes v.04
