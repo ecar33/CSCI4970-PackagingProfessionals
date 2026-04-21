@@ -1,3 +1,4 @@
+/** This file is code for the Analytics page for the UPSStore App */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   LineChart, Line,
@@ -13,18 +14,21 @@ const URGENCY_COLORS = {
 
 const URGENCY_ORDER = ['Reorder Now', 'Due Soon', 'OK'];
 
+/** Tests to see if an item needs to be reordered and changes the display to reflect urgency. */
 function urgencyFromItem(item) {
   if (item.should_reorder) return 'Reorder Now';
   if (item.days_until_reorder !== null && item.days_until_reorder < 7) return 'Due Soon';
   return 'OK';
 }
 
+/** Prevent too large of a value */
 function formatDays(value) {
   if (value === null || value === undefined) return '—';
   if (value > 999) return '999+ d';
   return `${Math.round(value)} d`;
 }
 
+/** Generates bars reflecting days left for a given inventory item */
 function DaysBar({ days, cls }) {
   if (days === null || days === undefined) {
     return <span style={{ color: '#8a9bb0' }}>—</span>;
@@ -41,11 +45,13 @@ function DaysBar({ days, cls }) {
   );
 }
 
+/** Keeps usage rates in a x.xx/day format */
 function formatRate(value) {
   if (!value) return '—';
   return `${value.toFixed(2)}/day`;
 }
 
+/** Function for displaying inventory trends */
 function HistoryChart({ sku, days }) {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -103,6 +109,9 @@ function HistoryChart({ sku, days }) {
   );
 }
 
+/** Primary function: Displays the page. Shows a pie chart of number of SKUs and how many are approaching needing an order, and how many need an order. 
+* The items with the highest use rate are displayed.
+* Every item has its own row that can be expanded to show greater information and display a line chart showing changes in inventory over the time span the user inputs. */
 function Analytics() {
   const [analytics, setAnalytics] = useState([]);
   const [loading, setLoading] = useState(true);

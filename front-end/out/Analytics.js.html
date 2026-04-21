@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Analytics.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: Analytics.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/** This file is code for the Analytics page for the UPSStore App */
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  LineChart, Line,
+  XAxis, YAxis, Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
+
+const URGENCY_COLORS = {
+  'Reorder Now': '#c53030',
+  'Due Soon':    '#b7791f',
+  'OK':          '#2f855a',
+};
+
+const URGENCY_ORDER = ['Reorder Now', 'Due Soon', 'OK'];
+
+/** Tests to see if an item needs to be reordered and changes the display to reflect urgency. */
+function urgencyFromItem(item) {
+  if (item.should_reorder) return 'Reorder Now';
+  if (item.days_until_reorder !== null &amp;&amp; item.days_until_reorder &lt; 7) return 'Due Soon';
+  return 'OK';
+}
+
+/** Prevent too large of a value */
+function formatDays(value) {
+  if (value === null || value === undefined) return '—';
+  if (value > 999) return '999+ d';
+  return `${Math.round(value)} d`;
+}
+
+/** Generates bars reflecting days left for a given inventory item */
+function DaysBar({ days, cls }) {
+  if (days === null || days === undefined) {
+    return &lt;span style={{ color: '#8a9bb0' }}>—&lt;/span>;
+  }
+  const pct = Math.max(2, Math.min((days / 60) * 100, 100));
+  const color = cls === 'critical' ? 'var(--danger)' : cls === 'low' ? 'var(--warn)' : 'var(--safe)';
+  return (
+    &lt;div className="daysBarWrap">
+      &lt;div className="daysBarTrack">
+        &lt;div className="daysBarFill" style={{ width: `${pct}%`, background: color }} />
+      &lt;/div>
+      &lt;span className="daysBarLabel">{Math.round(days)}d&lt;/span>
+    &lt;/div>
+  );
+}
+
+/** Keeps usage rates in a x.xx/day format */
+function formatRate(value) {
+  if (!value) return '—';
+  return `${value.toFixed(2)}/day`;
+}
+
+/** Function for displaying inventory trends */
+function HistoryChart({ sku, days }) {
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+
+    fetch(`/api/analytics/${sku}/history?days=${days}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (!mounted) return;
+        setHistory(
+          data.map((entry) => ({
+            ...entry,
+            label: new Date(entry.timestamp).toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+            }),
+          }))
+        );
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [sku, days]);
+
+  if (loading) return &lt;p className="emptyState">Loading history…&lt;/p>;
+  if (history.length === 0) return &lt;p className="emptyState">No log entries in this period.&lt;/p>;
+
+  return (
+    &lt;ResponsiveContainer width="100%" height={160}>
+      &lt;LineChart data={history} margin={{ top: 4, right: 16, bottom: 0, left: 0 }}>
+        &lt;XAxis dataKey="label" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
+        &lt;YAxis tick={{ fontSize: 11 }} width={42} />
+        &lt;Tooltip
+          formatter={(val) => [val, 'Qty after']}
+          contentStyle={{ fontSize: '0.82rem', borderRadius: '8px' }}
+        />
+        &lt;Line
+          type="monotone"
+          dataKey="quantity_after"
+          stroke="#0e7a6a"
+          strokeWidth={2}
+          dot={false}
+          activeDot={{ r: 4 }}
+        />
+      &lt;/LineChart>
+    &lt;/ResponsiveContainer>
+  );
+}
+
+/** Primary function: Displays the page. Shows a pie chart of number of SKUs and how many are approaching needing an order, and how many need an order. 
+* The items with the highest use rate are displayed.
+* Every item has its own row that can be expanded to show greater information and display a line chart showing changes in inventory over the time span the user inputs. */
+function Analytics() {
+  const [analytics, setAnalytics] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [params, setParams] = useState({ days: 30, lead_time: 5, safety_stock: 3 });
+  const [draftParams, setDraftParams] = useState({ days: 30, lead_time: 5, safety_stock: 3 });
+  const [sortConfig, setSortConfig] = useState({ key: 'urgency', direction: 'asc' });
+  const [expandedSku, setExpandedSku] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const loadAnalytics = useCallback(() => {
+    setLoading(true);
+    setError('');
+    const { days, lead_time, safety_stock } = params;
+
+    fetch(`/api/analytics?days=${days}&amp;lead_time=${lead_time}&amp;safety_stock=${safety_stock}`)
+      .then((r) => {
+        if (!r.ok) throw new Error(`Request failed with ${r.status}`);
+        return r.json();
+      })
+      .then((data) => setAnalytics(data))
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [params]);
+
+  useEffect(() => {
+    loadAnalytics();
+  }, [loadAnalytics]);
+
+  const enriched = useMemo(
+    () => analytics.map((item) => ({ ...item, urgency: urgencyFromItem(item) })),
+    [analytics]
+  );
+
+  const summary = useMemo(
+    () => ({
+      reorderNow: enriched.filter((i) => i.urgency === 'Reorder Now').length,
+      dueSoon: enriched.filter((i) => i.urgency === 'Due Soon').length,
+      noData: enriched.filter((i) => !i.daily_usage_rate).length,
+      total: enriched.length,
+    }),
+    [enriched]
+  );
+
+  const pieData = useMemo(() => [
+    { name: 'Reorder Now', value: summary.reorderNow, color: URGENCY_COLORS['Reorder Now'] },
+    { name: 'Due Soon',    value: summary.dueSoon,    color: URGENCY_COLORS['Due Soon'] },
+    { name: 'OK',          value: summary.total - summary.reorderNow - summary.dueSoon, color: URGENCY_COLORS['OK'] },
+  ].filter((d) => d.value > 0), [summary]);
+
+  const topUsage = useMemo(() =>
+    [...enriched]
+      .filter((i) => i.daily_usage_rate > 0)
+      .sort((a, b) => b.daily_usage_rate - a.daily_usage_rate)
+      .slice(0, 8)
+      .map((i) => ({
+        name: i.description.length > 22 ? i.description.slice(0, 20) + '…' : i.description,
+        rate: parseFloat(i.daily_usage_rate.toFixed(2)),
+      })),
+  [enriched]);
+
+  const filtered = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return enriched;
+    return enriched.filter(
+      (item) =>
+        item.sku.toLowerCase().includes(term) ||
+        item.description.toLowerCase().includes(term)
+    );
+  }, [enriched, searchTerm]);
+
+  const sorted = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      const { key, direction } = sortConfig;
+      let av = key === 'urgency' ? URGENCY_ORDER.indexOf(a.urgency) : a[key];
+      let bv = key === 'urgency' ? URGENCY_ORDER.indexOf(b.urgency) : b[key];
+      if (av === null || av === undefined) av = Infinity;
+      if (bv === null || bv === undefined) bv = Infinity;
+      if (av === bv) return 0;
+      const cmp = av &lt; bv ? -1 : 1;
+      return direction === 'asc' ? cmp : -cmp;
+    });
+  }, [filtered, sortConfig]);
+
+  function toggleSort(key) {
+    setSortConfig((c) =>
+      c.key === key
+        ? { key, direction: c.direction === 'asc' ? 'desc' : 'asc' }
+        : { key, direction: 'asc' }
+    );
+  }
+
+  function applyParams() {
+    setParams({ ...draftParams });
+    setExpandedSku(null);
+  }
+
+  function toggleExpand(sku) {
+    setExpandedSku((current) => (current === sku ? null : sku));
+  }
+
+  function renderSortLabel(label, key) {
+    if (sortConfig.key !== key) return `${label} ↕`;
+    return `${label} ${sortConfig.direction === 'asc' ? '↑' : '↓'}`;
+  }
+
+  function urgencyClass(urgency) {
+    if (urgency === 'Reorder Now') return 'critical';
+    if (urgency === 'Due Soon') return 'low';
+    return 'healthy';
+  }
+
+  return (
+    &lt;div>
+      &lt;div className="analyticsCards">
+        &lt;div className={`analyticsCard ${summary.reorderNow > 0 ? 'cardDanger' : 'cardSafe'}`}>
+          &lt;p className="cardValue">{summary.reorderNow}&lt;/p>
+          &lt;p className="cardLabel">Reorder Now&lt;/p>
+        &lt;/div>
+        &lt;div className={`analyticsCard ${summary.dueSoon > 0 ? 'cardWarn' : 'cardSafe'}`}>
+          &lt;p className="cardValue">{summary.dueSoon}&lt;/p>
+          &lt;p className="cardLabel">Due Soon (&amp;lt; 7 days)&lt;/p>
+        &lt;/div>
+        &lt;div className="analyticsCard cardNeutral">
+          &lt;p className="cardValue">{summary.noData}&lt;/p>
+          &lt;p className="cardLabel">No Usage Data&lt;/p>
+        &lt;/div>
+        &lt;div className="analyticsCard cardNeutral">
+          &lt;p className="cardValue">{summary.total}&lt;/p>
+          &lt;p className="cardLabel">Total SKUs Tracked&lt;/p>
+        &lt;/div>
+      &lt;/div>
+
+      &lt;section className="analyticsParams">
+        &lt;div className="paramGroup">
+          &lt;label className="paramLabel">
+            Look-back
+            &lt;input
+              type="number"
+              min="1"
+              max="365"
+              className="paramInput"
+              value={draftParams.days}
+              onChange={(e) =>
+                setDraftParams((d) => ({ ...d, days: Number(e.target.value) }))
+              }
+            />
+            &lt;span className="paramUnit">days&lt;/span>
+          &lt;/label>
+          &lt;label className="paramLabel">
+            Lead time
+            &lt;input
+              type="number"
+              min="1"
+              max="90"
+              className="paramInput"
+              value={draftParams.lead_time}
+              onChange={(e) =>
+                setDraftParams((d) => ({ ...d, lead_time: Number(e.target.value) }))
+              }
+            />
+            &lt;span className="paramUnit">days&lt;/span>
+          &lt;/label>
+          &lt;label className="paramLabel">
+            Safety stock
+            &lt;input
+              type="number"
+              min="0"
+              max="30"
+              className="paramInput"
+              value={draftParams.safety_stock}
+              onChange={(e) =>
+                setDraftParams((d) => ({ ...d, safety_stock: Number(e.target.value) }))
+              }
+            />
+            &lt;span className="paramUnit">days&lt;/span>
+          &lt;/label>
+          &lt;button type="button" className="exportBtn" onClick={applyParams}>
+            Apply
+          &lt;/button>
+        &lt;/div>
+        &lt;input
+          type="search"
+          className="analyticsSearch"
+          placeholder="Search SKU or description…"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          aria-label="Search analytics"
+        />
+      &lt;/section>
+
+      {error &amp;&amp; &lt;p className="emptyState" role="alert">{error}&lt;/p>}
+      {loading &amp;&amp; &lt;p className="emptyState">Loading analytics…&lt;/p>}
+
+      {!loading &amp;&amp; enriched.length > 0 &amp;&amp; console.log('chartsRow rendering', enriched.length)}
+      {!loading &amp;&amp; (
+        &lt;div className="chartsRow">
+          &lt;div className="chartCard">
+            &lt;p className="chartTitle">Urgency Breakdown&lt;/p>
+            &lt;div className="donutWrap">
+              &lt;div
+                className="cssDonut"
+                style={{
+                  background: `conic-gradient(${pieData.map((d, i) => {
+                    const start = pieData.slice(0, i).reduce((s, x) => s + (x.value / summary.total) * 360, 0);
+                    const end = start + (d.value / summary.total) * 360;
+                    return `${d.color} ${start}deg ${end}deg`;
+                  }).join(', ')})`,
+                }}
+              >
+                &lt;div className="cssDonutHole">
+                  &lt;span className="donutTotal">{summary.total}&lt;/span>
+                  &lt;span className="donutLabel">SKUs&lt;/span>
+                &lt;/div>
+              &lt;/div>
+            &lt;/div>
+            &lt;div className="donutLegend">
+              {pieData.map((d) => (
+                &lt;div key={d.name} className="legendItem">
+                  &lt;span className="legendDot" style={{ background: d.color }} />
+                  &lt;span>{d.name}&lt;/span>
+                  &lt;span className="legendVal">{d.value}&lt;/span>
+                &lt;/div>
+              ))}
+            &lt;/div>
+          &lt;/div>
+
+          &lt;div className="chartCard">
+            &lt;p className="chartTitle">Top Items by Daily Usage&lt;/p>
+            {topUsage.length === 0
+              ? &lt;p className="emptyState">No usage data in this period.&lt;/p>
+              : (
+                &lt;div className="cssBarChart">
+                  {topUsage.map((item) => (
+                    &lt;div key={item.name} className="cssBarRow">
+                      &lt;span className="cssBarName">{item.name}&lt;/span>
+                      &lt;div className="cssBarTrack">
+                        &lt;div
+                          className="cssBarFill"
+                          style={{ width: `${(item.rate / topUsage[0].rate) * 100}%` }}
+                        />
+                      &lt;/div>
+                      &lt;span className="cssBarVal">{item.rate}/day&lt;/span>
+                    &lt;/div>
+                  ))}
+                &lt;/div>
+              )
+            }
+          &lt;/div>
+        &lt;/div>
+      )}
+
+      {!loading &amp;&amp; (
+        &lt;section className="tableCard">
+          &lt;table>
+            &lt;thead>
+              &lt;tr>
+                &lt;th>
+                  &lt;button type="button" className="sortButton" onClick={() => toggleSort('sku')}>
+                    {renderSortLabel('SKU', 'sku')}
+                  &lt;/button>
+                &lt;/th>
+                &lt;th>
+                  &lt;button type="button" className="sortButton" onClick={() => toggleSort('description')}>
+                    {renderSortLabel('Product', 'description')}
+                  &lt;/button>
+                &lt;/th>
+                &lt;th>
+                  &lt;button type="button" className="sortButton" onClick={() => toggleSort('current_quantity')}>
+                    {renderSortLabel('On-hand', 'current_quantity')}
+                  &lt;/button>
+                &lt;/th>
+                &lt;th>
+                  &lt;button type="button" className="sortButton" onClick={() => toggleSort('daily_usage_rate')}>
+                    {renderSortLabel('Daily Usage', 'daily_usage_rate')}
+                  &lt;/button>
+                &lt;/th>
+                &lt;th>
+                  &lt;button type="button" className="sortButton" onClick={() => toggleSort('days_until_empty')}>
+                    {renderSortLabel('Days Left', 'days_until_empty')}
+                  &lt;/button>
+                &lt;/th>
+                &lt;th>
+                  &lt;button type="button" className="sortButton" onClick={() => toggleSort('reorder_point')}>
+                    {renderSortLabel('Reorder At', 'reorder_point')}
+                  &lt;/button>
+                &lt;/th>
+                &lt;th>
+                  &lt;button type="button" className="sortButton" onClick={() => toggleSort('urgency')}>
+                    {renderSortLabel('Status', 'urgency')}
+                  &lt;/button>
+                &lt;/th>
+              &lt;/tr>
+            &lt;/thead>
+            &lt;tbody>
+              {sorted.map((item) => (
+                &lt;React.Fragment key={item.sku}>
+                  &lt;tr
+                    className={`analyticsRow${item.urgency !== 'OK' ? ' warningRow' : ''}`}
+                    onClick={() => toggleExpand(item.sku)}
+                    aria-expanded={expandedSku === item.sku}
+                  >
+                    &lt;td>{item.sku}&lt;/td>
+                    &lt;td>{item.description}&lt;/td>
+                    &lt;td>{item.current_quantity}&lt;/td>
+                    &lt;td>{formatRate(item.daily_usage_rate)}&lt;/td>
+                    &lt;td>&lt;DaysBar days={item.days_until_empty} cls={urgencyClass(item.urgency)} />&lt;/td>
+                    &lt;td>{item.reorder_point ?? '—'}&lt;/td>
+                    &lt;td>
+                      &lt;span className={`status ${urgencyClass(item.urgency)}`}>
+                        {item.urgency}
+                      &lt;/span>
+                    &lt;/td>
+                  &lt;/tr>
+
+                  {expandedSku === item.sku &amp;&amp; (
+                    &lt;tr className="detailRow">
+                      &lt;td colSpan={7}>
+                        &lt;div className="detailPanel">
+                          &lt;div className="detailStats">
+                            &lt;div className="detailStat">
+                              &lt;span className="statLabel">Lead Time&lt;/span>
+                              &lt;span className="statValue">{item.lead_time_days} d&lt;/span>
+                            &lt;/div>
+                            &lt;div className="detailStat">
+                              &lt;span className="statLabel">Safety Stock&lt;/span>
+                              &lt;span className="statValue">{item.safety_stock_days} d&lt;/span>
+                            &lt;/div>
+                            &lt;div className="detailStat">
+                              &lt;span className="statLabel">Days to Reorder&lt;/span>
+                              &lt;span className="statValue">{formatDays(item.days_until_reorder)}&lt;/span>
+                            &lt;/div>
+                            &lt;div className="detailStat">
+                              &lt;span className="statLabel">Reorder Point&lt;/span>
+                              &lt;span className="statValue">{item.reorder_point ?? '—'} units&lt;/span>
+                            &lt;/div>
+                          &lt;/div>
+                          &lt;div className="detailChart">
+                            &lt;p className="chartTitle">
+                              Inventory Level — Last {params.days} Days
+                            &lt;/p>
+                            &lt;HistoryChart sku={item.sku} days={params.days} />
+                          &lt;/div>
+                        &lt;/div>
+                      &lt;/td>
+                    &lt;/tr>
+                  )}
+                &lt;/React.Fragment>
+              ))}
+            &lt;/tbody>
+          &lt;/table>
+
+          {sorted.length === 0 &amp;&amp; (
+            &lt;p className="emptyState">No items match your search.&lt;/p>
+          )}
+        &lt;/section>
+      )}
+    &lt;/div>
+  );
+}
+
+export default Analytics;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#Analytics">Analytics</a></li><li><a href="global.html#App">App</a></li><li><a href="global.html#DaysBar">DaysBar</a></li><li><a href="global.html#HistoryChart">HistoryChart</a></li><li><a href="global.html#formatDays">formatDays</a></li><li><a href="global.html#formatRate">formatRate</a></li><li><a href="global.html#sizeFromDescription">sizeFromDescription</a></li><li><a href="global.html#statusFromQuantity">statusFromQuantity</a></li><li><a href="global.html#urgencyFromItem">urgencyFromItem</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Tue Apr 07 2026 18:28:00 GMT-0500 (Central Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
