@@ -471,23 +471,30 @@ const visibleDate = lastScan.timestamp
             <button
               type="button"
               className={`exportBtn${showOverride ? ' active' : ''}`}
-              onClick={() => setShowOverride((v) => !v)}
-            >
-              {showOverride ? 'Hide Override' : 'Manual Override'}
-            </button>
-
-            <button
-              type="button"
-              className="exportBtn"
               onClick={() => {
-                setShowBlacklist((v) => {
-                  if (!v) loadBlacklist();
+                setShowOverride((v) => {
+                  if (v) setShowBlacklist(false);
                   return !v;
                 });
               }}
             >
-              {showBlacklist ? 'Hide Blacklist' : 'Manage Blacklist'}
+              {showOverride ? 'Hide Override' : 'Manual Override'}
             </button>
+
+            {showOverride && (
+              <button
+                type="button"
+                className={`exportBtn${showBlacklist ? ' active' : ''}`}
+                onClick={() => {
+                  setShowBlacklist((v) => {
+                    if (!v) loadBlacklist();
+                    return !v;
+                  });
+                }}
+              >
+                {showBlacklist ? 'Hide Blacklist' : 'Manage Blacklist'}
+              </button>
+            )}
           </section>
 
           {error && <p className="emptyState" role="alert">{error}</p>}

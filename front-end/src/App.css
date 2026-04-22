@@ -251,15 +251,15 @@ th {
   font-weight: 700;
   font-size: 1.05rem;
   cursor: pointer;
-  background: #744210;
+  background: #1a1a1a;
   color: #fff;
   transition: background 150ms ease, transform 120ms ease, box-shadow 150ms ease;
 }
 
 .blacklistBtn:hover:not(:disabled) {
-  background: #5a3209;
+  background: #000;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(116, 66, 16, 0.35);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 .blacklistBtn:disabled {
