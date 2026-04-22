@@ -71,8 +71,13 @@ function App() {
   const [drafts, setDrafts] = useState({});
   const [savingSku, setSavingSku] = useState('');
   const [deletingSku, setDeletingSku] = useState('');
+  const [blacklistingSku, setBlacklistingSku] = useState('');
   const [showOverride, setShowOverride] = useState(false);
   const [importingCsv, setImportingCsv] = useState(false);
+  const [showBlacklist, setShowBlacklist] = useState(false);
+  const [blacklist, setBlacklist] = useState([]);
+  const [blacklistLoading, setBlacklistLoading] = useState(false);
+  const [unblacklistingSku, setUnblacklistingSku] = useState('');
   const csvInputRef = React.useRef(null);
 
   useEffect(() => {
@@ -288,6 +293,69 @@ const visibleDate = lastScan.timestamp
     }
   }
 
+  async function blacklistItem(item) {
+    if (!window.confirm(`Are you sure you want to blacklist SKU ${item.sku}? It will be removed from inventory and excluded from all future CSV imports.`)) {
+      return;
+    }
+
+    setBlacklistingSku(item.sku);
+    setError('');
+
+    try {
+      const response = await fetch(`/api/blacklist/${item.sku}`, { method: 'POST' });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error || `Blacklist failed with ${response.status}`);
+      }
+
+      setInventory((current) => current.filter((entry) => entry.sku !== item.sku));
+      setDrafts((current) => {
+        const next = { ...current };
+        delete next[item.sku];
+        return next;
+      });
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setBlacklistingSku('');
+    }
+  }
+
+  async function loadBlacklist() {
+    setBlacklistLoading(true);
+    try {
+      const response = await fetch('/api/blacklist');
+      if (!response.ok) throw new Error(`Failed to load blacklist: ${response.status}`);
+      const data = await response.json();
+      setBlacklist(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBlacklistLoading(false);
+    }
+  }
+
+  async function unblacklistItem(sku) {
+    if (!window.confirm(`Remove SKU ${sku} from the blacklist? It will be eligible for future CSV imports but will NOT be re-added to inventory automatically.`)) {
+      return;
+    }
+
+    setUnblacklistingSku(sku);
+    try {
+      const response = await fetch(`/api/blacklist/${sku}`, { method: 'DELETE' });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error || `Failed with ${response.status}`);
+      }
+      setBlacklist((current) => current.filter((entry) => entry.sku !== sku));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUnblacklistingSku('');
+    }
+  }
+
   async function handleCsvImport(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -407,10 +475,64 @@ const visibleDate = lastScan.timestamp
             >
               {showOverride ? 'Hide Override' : 'Manual Override'}
             </button>
+
+            <button
+              type="button"
+              className="exportBtn"
+              onClick={() => {
+                setShowBlacklist((v) => {
+                  if (!v) loadBlacklist();
+                  return !v;
+                });
+              }}
+            >
+              {showBlacklist ? 'Hide Blacklist' : 'Manage Blacklist'}
+            </button>
           </section>
 
           {error && <p className="emptyState" role="alert">{error}</p>}
           {loading && <p className="emptyState">Loading inventory...</p>}
+
+          {showBlacklist && (
+            <section className="tableCard">
+              <h2 style={{ padding: '0.75rem 1rem 0' }}>Blacklisted SKUs</h2>
+              {blacklistLoading && <p className="emptyState">Loading blacklist...</p>}
+              {!blacklistLoading && blacklist.length === 0 && (
+                <p className="emptyState">No SKUs are currently blacklisted.</p>
+              )}
+              {!blacklistLoading && blacklist.length > 0 && (
+                <table>
+                  <thead>
+                    <tr>
+                      <th>SKU</th>
+                      <th>Description</th>
+                      <th>Blacklisted At</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {blacklist.map((entry) => (
+                      <tr key={entry.sku}>
+                        <td>{entry.sku}</td>
+                        <td>{entry.description}</td>
+                        <td>{new Date(entry.blacklisted_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}</td>
+                        <td>
+                          <button
+                            type="button"
+                            className="editBtn"
+                            onClick={() => unblacklistItem(entry.sku)}
+                            disabled={unblacklistingSku === entry.sku}
+                          >
+                            {unblacklistingSku === entry.sku ? 'Removing...' : 'Remove from Blacklist'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </section>
+          )}
 
           {!loading && (
             <section className="tableCard">
@@ -481,6 +603,14 @@ const visibleDate = lastScan.timestamp
                               disabled={deletingSku === item.sku}
                             >
                               {deletingSku === item.sku ? 'Deleting...' : 'Delete'}
+                            </button>
+                            <button
+                              type="button"
+                              className="blacklistBtn"
+                              onClick={() => blacklistItem(item)}
+                              disabled={blacklistingSku === item.sku}
+                            >
+                              {blacklistingSku === item.sku ? 'Blacklisting...' : 'Blacklist'}
                             </button>
                           </div>
                         </td>

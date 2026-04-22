@@ -6,7 +6,7 @@ load_dotenv()
 from ocr import extract_text_from_pdf, process_all_orders, parse_boxes_from_text, process_order_pdf
 from csv_parser import parse_sales_csv
 from watcher import start_watcher, start_count_watcher
-from databasemake import db, init_db, Inventory, InventoryLog, log_inventory_change
+from databasemake import db, init_db, Inventory, InventoryLog, BlacklistedSKU, log_inventory_change
 from analytics import (
     get_usage_rate,
     get_time_to_empty,
@@ -79,12 +79,19 @@ def increment_inventory_from_boxes(boxes):
 def decrement_inventory_from_sales(items):
     """
         @brief Decrement inventory counts based on sales data parsed from an uploaded CSV file. This function takes a list of items (each with SKU, description, sales count, and return count), finds the corresponding inventory item by SKU, and updates the item quantity by decrementing sales and incrementing returns.
-    
+
         @param items A list of dictionaries, each containing "sku", "description", "sales_count", and "return_count" parsed from the uploaded CSV file
         """
+    # Build a set of blacklisted SKUs for fast lookup
+    blacklisted = {row.sku for row in db.session.query(BlacklistedSKU).all()}
+
     for item_data in items:
         sku = item_data.get("sku")
         if not sku:
+            continue
+
+        if sku in blacklisted:
+            logger.info(f"Skipping blacklisted SKU {sku} during CSV import.")
             continue
 
         sales_count = int(item_data.get("sales_count", 0))
@@ -247,6 +254,61 @@ def delete_inventory_item(sku):
     )
     db.session.commit()
     return jsonify(message=f"Item {sku} deleted successfully")
+
+
+@app.get("/api/blacklist")
+def get_blacklist():
+    """@brief Return all blacklisted SKUs."""
+    rows = db.session.query(BlacklistedSKU).order_by(BlacklistedSKU.blacklisted_at.desc()).all()
+    return jsonify([
+        {"sku": r.sku, "description": r.description, "blacklisted_at": r.blacklisted_at.isoformat()}
+        for r in rows
+    ])
+
+
+@app.post("/api/blacklist/<sku>")
+def blacklist_sku(sku):
+    """
+       @brief Blacklist a SKU and remove it from the inventory table.
+    
+       @param sku The SKU to blacklist, provided as a URL parameter
+       
+       @return A JSON success message, or an error message if the SKU is already blacklisted
+    """
+    if db.session.get(BlacklistedSKU, sku):
+        return jsonify(error="SKU already blacklisted"), 409
+
+    item = db.session.get(Inventory, sku)
+    description = item.description if item else sku
+
+    if item:
+        db.session.delete(item)
+        log_inventory_change(
+            sku=sku, change_type="delete",
+            quantity_change=-item.item_quantity,
+            quantity_after=0,
+            note="Item blacklisted via API",
+        )
+
+    db.session.add(BlacklistedSKU(sku=sku, description=description))
+    db.session.commit()
+    return jsonify(message=f"SKU {sku} blacklisted successfully")
+
+
+@app.delete("/api/blacklist/<sku>")
+def unblacklist_sku(sku):
+    """
+       @brief Remove a SKU from the blacklist (does not restore inventory).
+       @param sku The SKU to remove from the blacklist, provided as a URL parameter
+       @return A JSON success message, or an error message if the SKU is not found in the blacklist
+       """
+    entry = db.session.get(BlacklistedSKU, sku)
+    if entry is None:
+        return jsonify(error="SKU not found in blacklist"), 404
+
+    db.session.delete(entry)
+    db.session.commit()
+    return jsonify(message=f"SKU {sku} removed from blacklist")
 
 
 @app.get("/api/analytics")

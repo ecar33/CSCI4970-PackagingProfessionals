@@ -46,6 +46,19 @@ class InventoryLog(db.Model):
     note: Mapped[str] = mapped_column(nullable=True)
 
 
+class BlacklistedSKU(db.Model):
+    """
+        @brief Stores SKUs that are permanently excluded from CSV sales imports.
+        """
+    __tablename__ = "blacklisted_sku"
+
+    sku: Mapped[str] = mapped_column(primary_key=True)
+    description: Mapped[str] = mapped_column(nullable=True)
+    blacklisted_at: Mapped[datetime] = mapped_column(
+        nullable=False, default=lambda: datetime.now(timezone.utc)
+    )
+
+
 def log_inventory_change(sku: str, change_type: str, quantity_change: int,
                          quantity_after: int, note: str = None) -> None:
     """
