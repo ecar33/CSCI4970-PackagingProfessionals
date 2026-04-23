@@ -244,6 +244,29 @@ th {
   cursor: not-allowed;
 }
 
+.blacklistBtn {
+  border: none;
+  border-radius: 10px;
+  padding: 13px 18px;
+  font-weight: 700;
+  font-size: 1.05rem;
+  cursor: pointer;
+  background: #1a1a1a;
+  color: #fff;
+  transition: background 150ms ease, transform 120ms ease, box-shadow 150ms ease;
+}
+
+.blacklistBtn:hover:not(:disabled) {
+  background: #000;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.blacklistBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .manualOverride {
   display: flex;
   gap: 10px;
