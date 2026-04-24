@@ -517,6 +517,20 @@ const visibleDate = lastScan.timestamp
             >
               {importingCsv ? 'Importing…' : 'Import Sales'}
             </button>
+			
+			
+			{showOverride && (
+              <button
+                type="button"
+                className="secondaryBtn"
+                onClick={() => {
+                  loadBlacklist();
+                  setShowBlacklist(true);
+                }}
+              >
+                Manage Blacklist
+              </button>
+            )}
 
             <button
               type="button"
@@ -531,18 +545,7 @@ const visibleDate = lastScan.timestamp
               {showOverride ? 'Hide Override' : 'Manual Override'}
             </button>
 
-            {showOverride && (
-              <button
-                type="button"
-                className="secondaryBtn"
-                onClick={() => {
-                  loadBlacklist();
-                  setShowBlacklist(true);
-                }}
-              >
-                Manage Blacklist
-              </button>
-            )}
+
           </section>
 
           {error && <p className="emptyState" role="alert">{error}</p>}
