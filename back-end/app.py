@@ -1,4 +1,6 @@
 from flask import Flask, jsonify, request
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 import logging
 import os
 from dotenv import load_dotenv
@@ -22,6 +24,13 @@ app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:////app/data/inv.db")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 init_db(app)
+
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["120 per minute"],
+    storage_uri="memory://",
+)
 
 ORDERS_DIR = "/app/orders"
 COUNTS_DIR = "/app/counts"
@@ -194,6 +203,7 @@ def get_inventory():
     return jsonify([serialize_inventory_item(item) for item in items])
 
 @app.patch("/api/inventory/<sku>")
+@limiter.limit("30 per minute")
 def update_inventory_item(sku):
     """
         @brief Endpoint to update an inventory item by SKU. This function accepts a JSON payload that can include "item_quantity" to set the quantity (must be a non-negative integer) and "description" to update the item's description (must not be empty). It validates the input, updates the corresponding inventory item in the database, and returns the updated item as JSON.
@@ -233,6 +243,7 @@ def update_inventory_item(sku):
 
 
 @app.delete("/api/inventory/<sku>")
+@limiter.limit("20 per minute")
 def delete_inventory_item(sku):
     """
         @brief Endpoint to delete an inventory item by SKU.
@@ -267,6 +278,7 @@ def get_blacklist():
 
 
 @app.post("/api/blacklist/<sku>")
+@limiter.limit("20 per minute")
 def blacklist_sku(sku):
     """
        @brief Blacklist a SKU and remove it from the inventory table.
@@ -296,6 +308,7 @@ def blacklist_sku(sku):
 
 
 @app.delete("/api/blacklist/<sku>")
+@limiter.limit("20 per minute")
 def unblacklist_sku(sku):
     """
        @brief Remove a SKU from the blacklist (does not restore inventory).
@@ -376,6 +389,7 @@ def last_scan():
     return jsonify(serialize_last_scan(last_update))
 
 @app.get("/api/ocr/orders")
+@limiter.limit("10 per minute")
 def ocr_all_orders():
     """
         @brief Endpoint to run OCR on all PDF files in the orders directory and return the extracted text for each file as JSON. This function processes all order PDFs by extracting text and parsing box information, returning a dictionary mapping each filename to its extracted text.
@@ -386,6 +400,7 @@ def ocr_all_orders():
     return jsonify(results)
 
 @app.get("/api/ocr/orders/<filename>")
+@limiter.limit("10 per minute")
 def ocr_single_order(filename):
     """
         @brief Endpoint to run OCR on a specific PDF file in the orders directory and return the extracted text as JSON. This function checks if the specified file exists, extracts text from it using OCR, and returns the filename along with the extracted text. If the file is not found, it returns a 404 error.
@@ -402,6 +417,7 @@ def ocr_single_order(filename):
     return jsonify(filename=filename, text=text)
 
 @app.get("/api/ocr/boxes/<filename>")
+@limiter.limit("10 per minute")
 def ocr_boxes(filename):
     """
         @brief Endpoint to run OCR on a specific PDF file in the orders directory, parse box information from the extracted text, and return the results as JSON. This function checks if the specified file exists, processes it to extract text and parse box data, and returns a structured JSON object containing the filename and a list of boxes with their sizes and counts. If the file is not found, it returns a 404 error.
@@ -418,6 +434,7 @@ def ocr_boxes(filename):
     return jsonify(result)
 
 @app.post("/api/csv/upload")
+@limiter.limit("10 per minute")
 def upload_csv():
     """
         @brief Endpoint to upload a sales/inventory CSV file, parse its contents, and update the inventory counts accordingly. This function checks for the presence of a file in the request, validates that it is a CSV, parses the sales data from the file, updates the inventory by decrementing sales and incrementing returns, and returns a JSON response containing the filename and the parsed items. If no file is provided or if the file is not a CSV, it returns an appropriate error message.
