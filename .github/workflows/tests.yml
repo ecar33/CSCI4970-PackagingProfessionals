@@ -51,3 +51,9 @@ jobs:
 
       - name: Run tests
         run: npm test -- --watchAll=false --ci
+      
+      - name: Lint with Ruff
+        run: |
+          pip install ruff
+          ruff check .
+          ruff format --check .
