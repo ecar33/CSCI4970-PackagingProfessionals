@@ -24,7 +24,7 @@ body {
 }
 
 .screen {
-  max-width: 1400px;
+  max-width: 1700px;
   margin: 0 auto;
   padding: 28px 22px 52px;
   animation: fadeUp 300ms ease-out;
@@ -66,11 +66,11 @@ h1 {
 .navMenu button {
   border: 1px solid var(--line);
   background: #fff;
-  padding: 12px 20px;
-  border-radius: 10px;
+  padding: 18px 36px;
+  border-radius: 12px;
   cursor: pointer;
-  font-weight: 600;
-  font-size: 1.05rem;
+  font-weight: 700;
+  font-size: 1.25rem;
   transition: background 150ms ease, transform 120ms ease, box-shadow 150ms ease;
 }
 
@@ -78,6 +78,16 @@ h1 {
   background: #f0f4f8;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(30, 46, 71, 0.12);
+}
+
+.navMenu button:first-child:hover {
+  background: #fffbdd;
+  border-color: #e6bc00;
+}
+
+.navMenu button:last-child:hover {
+  background: #e6f8fb;
+  border-color: var(--brand);
 }
 
 .navMenu .active {
@@ -89,7 +99,7 @@ h1 {
 .controls {
   margin-top: 16px;
   display: grid;
-  grid-template-columns: minmax(240px, 1.4fr) repeat(2, minmax(160px, 1fr)) auto auto;
+  grid-template-columns: minmax(240px, 1.4fr) repeat(2, minmax(160px, 1fr)) auto auto auto;
   gap: 12px;
   background: var(--card);
   border: 1px solid var(--line);
@@ -131,6 +141,59 @@ h1 {
   white-space: nowrap;
 }
 
+.importBtn {
+  background: #2563eb;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.importBtn:hover:not(:disabled) {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.overrideBtn {
+  background: #ea580c;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.overrideBtn:hover:not(:disabled) {
+  background: #c2410c;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);
+}
+
+.overrideBtn.active {
+  background: #c2410c;
+}
+
+.secondaryBtn {
+  border: 1.5px solid var(--line);
+  background: #fff;
+  border-radius: 10px;
+  padding: 13px 18px;
+  font-weight: 600;
+  font-size: 1.05rem;
+  cursor: pointer;
+  color: #425466;
+  white-space: nowrap;
+  transition: background 150ms ease, border-color 150ms ease, transform 120ms ease;
+}
+
+.secondaryBtn:hover {
+  background: #e6f8fb;
+  border-color: var(--brand);
+  transform: translateY(-1px);
+}
+
+.secondaryBtn.active {
+  background: #eef9fc;
+  border-color: var(--brand);
+  color: var(--brand-dark);
+}
+
 .exportBtn:hover:not(:disabled) {
   background: #e6bc00;
   transform: translateY(-1px);
@@ -149,15 +212,15 @@ h1 {
 table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 980px;
+  min-width: 680px;
 }
 
 th,
 td {
   border-bottom: 1px solid #ebeff3;
-  padding: 15px 16px;
+  padding: 18px 16px;
   text-align: left;
-  font-size: 1.05rem;
+  font-size: 1.15rem;
 }
 
 th {
@@ -165,7 +228,7 @@ th {
   top: 0;
   z-index: 1;
   background: #f8fbfd;
-  font-size: 0.95rem;
+  font-size: 1.05rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
   color: #425466;
@@ -211,8 +274,8 @@ th {
 }
 
 .editBtn {
-  background: var(--accent);
-  color: var(--ink);
+  background: var(--safe);
+  color: #fff;
 }
 
 .editBtn:hover:not(:disabled) {
@@ -300,6 +363,89 @@ th {
   }
 }
 
+@keyframes rowFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.rowFadeIn {
+  animation: rowFadeIn 300ms ease-out;
+}
+
+@keyframes rowFadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+.deletingRow {
+  animation: rowFadeOut 350ms ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes savedFlash {
+  0%   { background: #d8f3e3; color: var(--safe); font-weight: 700; }
+  60%  { background: #d8f3e3; color: var(--safe); font-weight: 700; }
+  100% { background: transparent; color: inherit; font-weight: inherit; }
+}
+
+.savedFlash {
+  animation: savedFlash 1200ms ease-out forwards;
+}
+
+.overrideCol {
+  min-width: 420px;
+  max-width: 420px;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: min-width 380ms cubic-bezier(0.4, 0, 0.2, 1),
+              max-width 380ms cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 250ms ease,
+              padding-left 380ms cubic-bezier(0.4, 0, 0.2, 1),
+              padding-right 380ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.overrideCol.overrideHidden {
+  min-width: 0;
+  max-width: 0;
+  padding-left: 0;
+  padding-right: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.viewContainer {
+  position: relative;
+}
+
+.viewPanel {
+  width: 100%;
+  transition: opacity 250ms ease, visibility 250ms ease;
+}
+
+.viewPanel.viewInactive {
+  position: absolute;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.viewPanel.viewActive {
+  opacity: 1;
+  visibility: visible;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.fadeIn {
+  animation: fadeIn 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: top center;
+}
+
 /* ── Analytics Dashboard ── */
 
 .analyticsCards {
@@ -384,17 +530,17 @@ th {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 1rem;
+  font-size: 1.15rem;
   font-weight: 600;
   color: #425466;
 }
 
 .paramInput {
-  width: 72px;
+  width: 80px;
   border: 1px solid #cfd6df;
   border-radius: 8px;
-  padding: 9px 10px;
-  font-size: 1rem;
+  padding: 11px 12px;
+  font-size: 1.1rem;
   background: #fff;
   text-align: center;
 }
@@ -406,7 +552,7 @@ th {
 
 .paramUnit {
   color: #8a9bb0;
-  font-size: 0.95rem;
+  font-size: 1.05rem;
 }
 
 .analyticsSearch {

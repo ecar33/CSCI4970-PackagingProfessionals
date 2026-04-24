@@ -121,6 +121,12 @@ function Analytics() {
   const [sortConfig, setSortConfig] = useState({ key: 'urgency', direction: 'asc' });
   const [expandedSku, setExpandedSku] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchTerm), 200);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
 
   const loadAnalytics = useCallback(() => {
     setLoading(true);
@@ -174,14 +180,14 @@ function Analytics() {
   [enriched]);
 
   const filtered = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
+    const term = debouncedSearch.trim().toLowerCase();
     if (!term) return enriched;
     return enriched.filter(
       (item) =>
         item.sku.toLowerCase().includes(term) ||
         item.description.toLowerCase().includes(term)
     );
-  }, [enriched, searchTerm]);
+  }, [enriched, debouncedSearch]);
 
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
@@ -304,10 +310,10 @@ function Analytics() {
       </section>
 
       {error && <p className="emptyState" role="alert">{error}</p>}
-      {loading && <p className="emptyState">Loading analytics…</p>}
+      {loading && enriched.length === 0 && <p className="emptyState">Loading analytics…</p>}
 
-      {!loading && enriched.length > 0 && console.log('chartsRow rendering', enriched.length)}
-      {!loading && (
+      {enriched.length > 0 && (
+      <div style={{ opacity: loading ? 0.4 : 1, transition: 'opacity 300ms ease', pointerEvents: loading ? 'none' : 'auto' }}>
         <div className="chartsRow">
           <div className="chartCard">
             <p className="chartTitle">Urgency Breakdown</p>
@@ -362,9 +368,11 @@ function Analytics() {
             }
           </div>
         </div>
+      </div>
       )}
 
-      {!loading && (
+      {enriched.length > 0 && (
+      <div style={{ opacity: loading ? 0.4 : 1, transition: 'opacity 300ms ease', pointerEvents: loading ? 'none' : 'auto' }}>
         <section className="tableCard">
           <table>
             <thead>
@@ -391,7 +399,7 @@ function Analytics() {
                 </th>
                 <th>
                   <button type="button" className="sortButton" onClick={() => toggleSort('days_until_empty')}>
-                    {renderSortLabel('Days Left', 'days_until_empty')}
+                    {renderSortLabel('Days Until Reorder', 'days_until_reorder')}
                   </button>
                 </th>
                 <th>
@@ -406,7 +414,7 @@ function Analytics() {
                 </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody key={debouncedSearch} className="fadeIn">
               {sorted.map((item) => (
                 <React.Fragment key={item.sku}>
                   <tr
@@ -418,7 +426,7 @@ function Analytics() {
                     <td>{item.description}</td>
                     <td>{item.current_quantity}</td>
                     <td>{formatRate(item.daily_usage_rate)}</td>
-                    <td><DaysBar days={item.days_until_empty} cls={urgencyClass(item.urgency)} /></td>
+                    <td><DaysBar days={item.days_until_reorder} cls={urgencyClass(item.urgency)} /></td>
                     <td>{item.reorder_point ?? '—'}</td>
                     <td>
                       <span className={`status ${urgencyClass(item.urgency)}`}>
@@ -468,6 +476,7 @@ function Analytics() {
             <p className="emptyState">No items match your search.</p>
           )}
         </section>
+      </div>
       )}
     </div>
   );
