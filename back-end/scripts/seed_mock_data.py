@@ -11,22 +11,22 @@ but always appends fresh log entries.
 """
 
 import random
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 
 from app import app
-from databasemake import db, Inventory, InventoryLog
+from databasemake import Inventory, InventoryLog, db
 
 ITEMS = [
-    ("10001", "08x06x04 Box",   60),
-    ("10002", "08x08x08 Box",   45),
-    ("10003", "10x10x10 Box",   80),
-    ("10004", "12x12x12 Box",   30),
-    ("10005", "18x18x18 Box",   20),
-    ("10006", "20x20x12 Box",   15),
-    ("10007", "24x24x24 Box",   10),
+    ("10001", "08x06x04 Box", 60),
+    ("10002", "08x08x08 Box", 45),
+    ("10003", "10x10x10 Box", 80),
+    ("10004", "12x12x12 Box", 30),
+    ("10005", "18x18x18 Box", 20),
+    ("10006", "20x20x12 Box", 15),
+    ("10007", "24x24x24 Box", 10),
     ("10008", "Bubble Wrap Roll", 5),
     ("10009", "Packing Peanuts", 12),
-    ("10010", "Tape Roll",       50),
+    ("10010", "Tape Roll", 50),
 ]
 
 # Daily sale rates — vary per item to create interesting analytics spread
@@ -53,12 +53,14 @@ def seed():
         for sku, description, starting_qty in ITEMS:
             existing = db.session.get(Inventory, sku)
             if existing is None:
-                db.session.add(Inventory(
-                    sku=sku,
-                    description=description,
-                    item_quantity=starting_qty,
-                    return_quantity=0,
-                ))
+                db.session.add(
+                    Inventory(
+                        sku=sku,
+                        description=description,
+                        item_quantity=starting_qty,
+                        return_quantity=0,
+                    )
+                )
                 print(f"  + Added inventory: {sku} {description}")
             else:
                 print(f"  ~ Skipped existing: {sku}")
@@ -77,14 +79,16 @@ def seed():
                 if day_offset % random.randint(18, 24) == 0:
                     restock = random.randint(20, 50)
                     running_qty += restock
-                    db.session.add(InventoryLog(
-                        sku=sku,
-                        change_type="order_in",
-                        quantity_change=restock,
-                        quantity_after=running_qty,
-                        timestamp=day.replace(hour=8, minute=0),
-                        note="Mock restock",
-                    ))
+                    db.session.add(
+                        InventoryLog(
+                            sku=sku,
+                            change_type="order_in",
+                            quantity_change=restock,
+                            quantity_after=running_qty,
+                            timestamp=day.replace(hour=8, minute=0),
+                            note="Mock restock",
+                        )
+                    )
                     log_count += 1
 
                 # Daily sales — Poisson-ish using normal distribution
@@ -92,14 +96,18 @@ def seed():
                 if sales_today > 0 and running_qty > 0:
                     sales_today = min(sales_today, running_qty)
                     running_qty -= sales_today
-                    db.session.add(InventoryLog(
-                        sku=sku,
-                        change_type="sale",
-                        quantity_change=-sales_today,
-                        quantity_after=running_qty,
-                        timestamp=day.replace(hour=random.randint(9, 17), minute=random.randint(0, 59)),
-                        note="Mock sale",
-                    ))
+                    db.session.add(
+                        InventoryLog(
+                            sku=sku,
+                            change_type="sale",
+                            quantity_change=-sales_today,
+                            quantity_after=running_qty,
+                            timestamp=day.replace(
+                                hour=random.randint(9, 17), minute=random.randint(0, 59)
+                            ),
+                            note="Mock sale",
+                        )
+                    )
                     log_count += 1
 
             # Update current quantity to reflect simulated history

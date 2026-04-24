@@ -1,16 +1,19 @@
-﻿# back-end/watcher.py
+# back-end/watcher.py
+import logging
 import os
 import time
-import logging
-from watchdog.observers.polling import PollingObserver
+
 from watchdog.events import FileSystemEventHandler
-from ocr import extract_text_from_pdf, parse_boxes_from_text
+from watchdog.observers.polling import PollingObserver
+
 from csv_parser import parse_count_sheet_csv
+from ocr import extract_text_from_pdf, parse_boxes_from_text
 
 logger = logging.getLogger(__name__)
 
 MAX_FILE_SIZE = 200 * 1024 * 1024  # 200 MB cap for PDF/CSV
-MAX_COUNT_SANITY = 10_000          # Warn if a count sheet reports more than this
+MAX_COUNT_SANITY = 10_000  # Warn if a count sheet reports more than this
+
 
 class _BaseFileHandler(FileSystemEventHandler):
     """Shared logic for waiting until a file is fully written."""

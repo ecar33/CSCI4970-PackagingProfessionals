@@ -4,22 +4,22 @@ Tests for analytics.py — usage rate, time-to-empty, and reorder logic.
 Log records are inserted with explicit naive UTC timestamps so these tests
 document the expected behaviour.
 """
-import pytest
+
 from datetime import datetime, timedelta, timezone
 
 from analytics import (
-    get_usage_rate,
-    get_time_to_empty,
-    get_reorder_recommendation,
     get_all_analytics,
     get_inventory_history,
+    get_reorder_recommendation,
+    get_time_to_empty,
+    get_usage_rate,
 )
-from databasemake import db, Inventory, InventoryLog
-
+from databasemake import InventoryLog, db
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def naive_utc(days_ago=0):
     """Return a naive UTC datetime N days in the past."""
@@ -28,19 +28,22 @@ def naive_utc(days_ago=0):
 
 def add_log(app, sku, change_type, quantity_change, quantity_after, days_ago=1):
     with app.app_context():
-        db.session.add(InventoryLog(
-            sku=sku,
-            change_type=change_type,
-            quantity_change=quantity_change,
-            quantity_after=quantity_after,
-            timestamp=naive_utc(days_ago),
-        ))
+        db.session.add(
+            InventoryLog(
+                sku=sku,
+                change_type=change_type,
+                quantity_change=quantity_change,
+                quantity_after=quantity_after,
+                timestamp=naive_utc(days_ago),
+            )
+        )
         db.session.commit()
 
 
 # ---------------------------------------------------------------------------
 # get_usage_rate
 # ---------------------------------------------------------------------------
+
 
 def test_usage_rate_unknown_sku_returns_none(seeded_app):
     with seeded_app.app_context():
@@ -89,8 +92,15 @@ def test_usage_rate_response_shape(seeded_app):
     with seeded_app.app_context():
         result = get_usage_rate("10004")
     expected_keys = {
-        "sku", "description", "current_quantity", "daily_usage_rate",
-        "period_days", "effective_days", "total_sold", "total_received", "net_change",
+        "sku",
+        "description",
+        "current_quantity",
+        "daily_usage_rate",
+        "period_days",
+        "effective_days",
+        "total_sold",
+        "total_received",
+        "net_change",
     }
     assert set(result.keys()) == expected_keys
 
@@ -106,6 +116,7 @@ def test_usage_rate_net_change(seeded_app):
 # ---------------------------------------------------------------------------
 # get_time_to_empty
 # ---------------------------------------------------------------------------
+
 
 def test_time_to_empty_unknown_sku_returns_none(seeded_app):
     with seeded_app.app_context():
@@ -142,6 +153,7 @@ def test_time_to_empty_zero_stock_returns_zero(seeded_app):
 # get_reorder_recommendation
 # ---------------------------------------------------------------------------
 
+
 def test_reorder_unknown_sku_returns_none(seeded_app):
     with seeded_app.app_context():
         assert get_reorder_recommendation("DOESNOTEXIST") is None
@@ -169,9 +181,15 @@ def test_reorder_response_shape(seeded_app):
     with seeded_app.app_context():
         result = get_reorder_recommendation("10004")
     expected_keys = {
-        "sku", "description", "current_quantity", "daily_usage_rate",
-        "lead_time_days", "safety_stock_days", "reorder_point",
-        "should_reorder", "days_until_reorder",
+        "sku",
+        "description",
+        "current_quantity",
+        "daily_usage_rate",
+        "lead_time_days",
+        "safety_stock_days",
+        "reorder_point",
+        "should_reorder",
+        "days_until_reorder",
     }
     assert set(result.keys()) == expected_keys
 
@@ -189,6 +207,7 @@ def test_reorder_point_formula(seeded_app):
 # get_all_analytics
 # ---------------------------------------------------------------------------
 
+
 def test_all_analytics_returns_list(seeded_app):
     with seeded_app.app_context():
         result = get_all_analytics()
@@ -200,9 +219,16 @@ def test_all_analytics_item_shape(seeded_app):
     with seeded_app.app_context():
         result = get_all_analytics()
     expected_keys = {
-        "sku", "description", "current_quantity", "daily_usage_rate",
-        "days_until_empty", "reorder_point", "should_reorder",
-        "days_until_reorder", "lead_time_days", "safety_stock_days",
+        "sku",
+        "description",
+        "current_quantity",
+        "daily_usage_rate",
+        "days_until_empty",
+        "reorder_point",
+        "should_reorder",
+        "days_until_reorder",
+        "lead_time_days",
+        "safety_stock_days",
     }
     for item in result:
         assert set(item.keys()) == expected_keys
@@ -211,6 +237,7 @@ def test_all_analytics_item_shape(seeded_app):
 # ---------------------------------------------------------------------------
 # get_inventory_history
 # ---------------------------------------------------------------------------
+
 
 def test_history_empty_for_no_logs(seeded_app):
     with seeded_app.app_context():
@@ -238,4 +265,12 @@ def test_history_entry_shape(seeded_app):
     with seeded_app.app_context():
         result = get_inventory_history("10004")
     entry = result[0]
-    assert set(entry.keys()) == {"id", "sku", "change_type", "quantity_change", "quantity_after", "timestamp", "note"}
+    assert set(entry.keys()) == {
+        "id",
+        "sku",
+        "change_type",
+        "quantity_change",
+        "quantity_after",
+        "timestamp",
+        "note",
+    }

@@ -2,9 +2,10 @@
 Unit tests for csv_parser.parse_sales_csv.
 No database or Flask app needed — pure logic tests on CSV parsing and field extraction.
 """
+
 import io
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 

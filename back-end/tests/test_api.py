@@ -5,13 +5,14 @@ Tests for Flask API endpoints:
   PATCH /api/inventory/<sku>
   POST /api/csv/upload
 """
+
 import io
 import json
-
 
 # ---------------------------------------------------------------------------
 # Health
 # ---------------------------------------------------------------------------
+
 
 def test_health_returns_ok(client):
     response = client.get("/api/health")
@@ -22,6 +23,7 @@ def test_health_returns_ok(client):
 # ---------------------------------------------------------------------------
 # GET /api/inventory
 # ---------------------------------------------------------------------------
+
 
 def test_get_inventory_empty(client):
     response = client.get("/api/inventory")
@@ -48,6 +50,7 @@ def test_get_inventory_item_shape(seeded_client):
 # ---------------------------------------------------------------------------
 # PATCH /api/inventory/<sku>
 # ---------------------------------------------------------------------------
+
 
 def test_patch_inventory_updates_quantity(seeded_client):
     response = seeded_client.patch(
@@ -142,7 +145,9 @@ def test_csv_upload_decrements_inventory(seeded_client):
 
 def test_csv_upload_does_not_go_below_zero(seeded_client):
     # 10008 starts at 0, CSV sells 5 more
-    csv_data = "SKU,ShortDescription,ItemSalesUnitCount,ItemReturnUnitCount\n10008,18x18x18 Box,5,0\n"
+    csv_data = (
+        "SKU,ShortDescription,ItemSalesUnitCount,ItemReturnUnitCount\n10008,18x18x18 Box,5,0\n"
+    )
     data = {"file": (io.BytesIO(csv_data.encode()), "sales.csv")}
     seeded_client.post("/api/csv/upload", data=data, content_type="multipart/form-data")
 
@@ -167,7 +172,9 @@ def test_csv_upload_wrong_extension_returns_400(seeded_client):
 
 
 def test_csv_upload_applies_returns(seeded_client):
-    csv_data = "SKU,ShortDescription,ItemSalesUnitCount,ItemReturnUnitCount\n10005,12x12x12 Box,0,3\n"
+    csv_data = (
+        "SKU,ShortDescription,ItemSalesUnitCount,ItemReturnUnitCount\n10005,12x12x12 Box,0,3\n"
+    )
     data = {"file": (io.BytesIO(csv_data.encode()), "sales.csv")}
     seeded_client.post("/api/csv/upload", data=data, content_type="multipart/form-data")
 

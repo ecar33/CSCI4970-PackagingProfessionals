@@ -5,12 +5,14 @@ from unittest.mock import MagicMock, patch
 os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 
 # Patch both watchers before import so they don't try to create /app/orders or /app/counts
-with patch("watcher.start_watcher", return_value=MagicMock()), \
-     patch("watcher.start_count_watcher", return_value=MagicMock()):
+with patch("watcher.start_watcher", return_value=MagicMock()), patch(
+    "watcher.start_count_watcher", return_value=MagicMock()
+):
     from app import app as flask_app
 
 import pytest
-from databasemake import db, Inventory
+
+from databasemake import Inventory, db
 
 
 @pytest.fixture
@@ -34,9 +36,15 @@ def client(app):
 def seeded_app(app):
     """App with a small set of known inventory items pre-loaded."""
     with app.app_context():
-        db.session.merge(Inventory(sku="10004", description="10x10x10 Box", item_quantity=50, return_quantity=0))
-        db.session.merge(Inventory(sku="10005", description="12x12x12 Box", item_quantity=5, return_quantity=0))
-        db.session.merge(Inventory(sku="10008", description="18x18x18 Box", item_quantity=0, return_quantity=0))
+        db.session.merge(
+            Inventory(sku="10004", description="10x10x10 Box", item_quantity=50, return_quantity=0)
+        )
+        db.session.merge(
+            Inventory(sku="10005", description="12x12x12 Box", item_quantity=5, return_quantity=0)
+        )
+        db.session.merge(
+            Inventory(sku="10008", description="18x18x18 Box", item_quantity=0, return_quantity=0)
+        )
         db.session.commit()
     return app
 

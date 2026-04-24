@@ -1,7 +1,8 @@
+from datetime import datetime, timezone
+
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from datetime import datetime, timezone
 
 
 class Base(DeclarativeBase):
@@ -13,10 +14,11 @@ db = SQLAlchemy(model_class=Base)
 
 class Inventory(db.Model):
     """
-        @brief Create / find existing inventory items in the database.
-    
-        @param db.Model SQLAlchemy model base class
-        """
+    @brief Create / find existing inventory items in the database.
+
+    @param db.Model SQLAlchemy model base class
+    """
+
     __tablename__ = "inventory"
 
     sku: Mapped[str] = mapped_column(primary_key=True)
@@ -27,12 +29,13 @@ class Inventory(db.Model):
 
 class InventoryLog(db.Model):
     """
-        @brief Log every inventory change so we can compute usage rates and projections.
+    @brief Log every inventory change so we can compute usage rates and projections.
 
-        change_type is one of: "order_in" (OCR order added stock),
-        "sale" (CSV sale decremented stock), "return" (CSV return added stock),
-        "manual" (manual edit).
-        """
+    change_type is one of: "order_in" (OCR order added stock),
+    "sale" (CSV sale decremented stock), "return" (CSV return added stock),
+    "manual" (manual edit).
+    """
+
     __tablename__ = "inventory_log"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -48,8 +51,9 @@ class InventoryLog(db.Model):
 
 class BlacklistedSKU(db.Model):
     """
-        @brief Stores SKUs that are permanently excluded from CSV sales imports.
-        """
+    @brief Stores SKUs that are permanently excluded from CSV sales imports.
+    """
+
     __tablename__ = "blacklisted_sku"
 
     sku: Mapped[str] = mapped_column(primary_key=True)
@@ -59,17 +63,18 @@ class BlacklistedSKU(db.Model):
     )
 
 
-def log_inventory_change(sku: str, change_type: str, quantity_change: int,
-                         quantity_after: int, note: str = None) -> None:
+def log_inventory_change(
+    sku: str, change_type: str, quantity_change: int, quantity_after: int, note: str = None
+) -> None:
     """
-        @brief Record an inventory change in the log table.
+    @brief Record an inventory change in the log table.
 
-        @param sku SKU of the item
-        @param change_type One of "order_in", "sale", "return", "manual"
-        @param quantity_change Signed delta (+added, -removed)
-        @param quantity_after Inventory level after the change
-        @param note Optional note
-        """
+    @param sku SKU of the item
+    @param change_type One of "order_in", "sale", "return", "manual"
+    @param quantity_change Signed delta (+added, -removed)
+    @param quantity_after Inventory level after the change
+    @param note Optional note
+    """
     entry = InventoryLog(
         sku=sku,
         change_type=change_type,
@@ -120,26 +125,28 @@ SEED_ITEMS = [
 
 def seed_db() -> None:
     """
-        @brief Seed the inventory database with initial items if they don't already exist.
+    @brief Seed the inventory database with initial items if they don't already exist.
     """
     for item in SEED_ITEMS:
         existing = db.session.get(Inventory, item["sku"])
         if existing is None:
-            db.session.add(Inventory(
-                sku=item["sku"],
-                description=item["description"],
-                item_quantity=50,
-                return_quantity=0,
-            ))
+            db.session.add(
+                Inventory(
+                    sku=item["sku"],
+                    description=item["description"],
+                    item_quantity=50,
+                    return_quantity=0,
+                )
+            )
     db.session.commit()
 
 
 def init_db(app: Flask) -> None:
     """
-        @brief Initialize the database and create tables, then seed with initial inventory items.
-    
-        @param app Flask application instance to bind the database to
-        """
+    @brief Initialize the database and create tables, then seed with initial inventory items.
+
+    @param app Flask application instance to bind the database to
+    """
     db.init_app(app)
 
     with app.app_context():
