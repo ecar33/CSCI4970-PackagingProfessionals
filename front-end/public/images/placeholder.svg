@@ -1,0 +1,7 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" width="600" height="340" viewBox="0 0 600 340">
+  <rect width="600" height="340" fill="#e8ecf0" rx="12"/>
+  <rect x="20" y="20" width="560" height="300" fill="none" stroke="#b0bec5" stroke-width="2" stroke-dasharray="8 4" rx="8"/>
+  <text x="300" y="155" font-family="sans-serif" font-size="22" fill="#90a4ae" text-anchor="middle">Image Placeholder</text>
+  <text x="300" y="185" font-family="sans-serif" font-size="14" fill="#b0bec5" text-anchor="middle">Replace with actual screenshot</text>
+</svg>
+
