@@ -22,7 +22,7 @@ const SECTIONS = [
     title: '3. Importing Sales Data',
     body: `Click Import Sales and select the daily sales CSV file. The system will automatically deduct sold quantities from inventory and skip any blacklisted SKUs.`,
     steps: [
-      { image: '/images/step1.png', caption: 'Step 1 – Login to Team Portal and select FRS },
+      { image: '/images/step1.png', caption: 'Step 1 – Login to Team Portal and select FRS }',
       { image: '/images/step2.png', caption: 'Step 2 – Select POS Reports' },
       { image: '/images/step3.png', caption: 'Step 3 – Select Item Sales' },
       { image: '/images/step4.png', caption: 'Step 4 – Select Retail Shipping Supplies, set date range, and select Go' },
