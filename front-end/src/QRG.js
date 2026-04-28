@@ -26,11 +26,11 @@ const SECTIONS = [
     title: '3. Importing Sales Data',
     body: `Click Import Sales and select the daily sales CSV file. The system will automatically deduct sold quantities from inventory and skip any blacklisted SKUs. A confirmation banner appears when the import succeeds.`,
     steps: [
-      { image: '/images/step1.svg', caption: 'Step 1 – replace with actual image' },
-      { image: '/images/step2.svg', caption: 'Step 2 – replace with actual image' },
-      { image: '/images/step3.svg', caption: 'Step 3 – replace with actual image' },
-      { image: '/images/step4.svg', caption: 'Step 4 – replace with actual image' },
-      { image: '/images/step5.svg', caption: 'Step 5 – replace with actual image' },
+      { image: '/images/step1.png', caption: 'Step 1 – replace with actual image' },
+      { image: '/images/step2.png', caption: 'Step 2 – replace with actual image' },
+      { image: '/images/step3.png', caption: 'Step 3 – replace with actual image' },
+      { image: '/images/step4.png', caption: 'Step 4 – replace with actual image' },
+      { image: '/images/step5.png', caption: 'Step 5 – replace with actual image' },
       { image: '/images/placeholder.svg', caption: 'Step 6 – replace with actual image' },
     ],
   },
@@ -54,13 +54,6 @@ const SECTIONS = [
     body: `Switch to the Analytics view for historical trends, top-selling SKUs, and days-of-supply calculations. Use the parameter controls to adjust thresholds and the search bar to focus on a specific product.`,
     image: '/images/placeholder.svg',
     imageAlt: 'Analytics screenshot – replace with actual image',
-  },
-  {
-    id: 'watcher',
-    title: '7. Automated File Watcher',
-    body: `A background service monitors the designated network folder for new order summary PDFs and count-sheet CSV files. When a file is detected it is parsed automatically and inventory is updated without any manual steps. Ensure the watched folder path is configured correctly in the back-end settings.`,
-    image: '/images/placeholder.svg',
-    imageAlt: 'File watcher diagram – replace with actual image',
   },
 ];
 
