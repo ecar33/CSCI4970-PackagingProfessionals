@@ -11,49 +11,45 @@ const SECTIONS = [
     id: 'overview',
     title: '1. Overview',
     body: `This application tracks inventory for The UPS Store #4166. It shows real-time stock levels, flags low or critical items, and automatically updates counts when sales CSV files or order summaries are imported.`,
-    image: '/images/placeholder.svg',
-    imageAlt: 'Overview screenshot – replace with actual image',
   },
   {
     id: 'inventory',
     title: '2. Inventory Table',
     body: `The Inventory Table lists every tracked SKU with its current on-hand quantity, return quantity, and health status (Healthy / Low / Critical). Use the search box to filter by SKU or description, or use the dropdowns to narrow by status or box size.`,
-    image: '/images/placeholder.svg',
-    imageAlt: 'Inventory table screenshot – replace with actual image',
   },
   {
     id: 'import',
     title: '3. Importing Sales Data',
-    body: `Click Import Sales and select the daily sales CSV file. The system will automatically deduct sold quantities from inventory and skip any blacklisted SKUs. A confirmation banner appears when the import succeeds.`,
+    body: `Click Import Sales and select the daily sales CSV file. The system will automatically deduct sold quantities from inventory and skip any blacklisted SKUs.`,
     steps: [
-      { image: '/images/step1.png', caption: 'Step 1 – replace with actual image' },
-      { image: '/images/step2.png', caption: 'Step 2 – replace with actual image' },
-      { image: '/images/step3.png', caption: 'Step 3 – replace with actual image' },
-      { image: '/images/step4.png', caption: 'Step 4 – replace with actual image' },
-      { image: '/images/step5.png', caption: 'Step 5 – replace with actual image' },
-      { image: '/images/placeholder.svg', caption: 'Step 6 – replace with actual image' },
+      { image: '/images/step1.png', caption: 'Step 1 – Login to Team Portal and select FRS },
+      { image: '/images/step2.png', caption: 'Step 2 – Select POS Reports' },
+      { image: '/images/step3.png', caption: 'Step 3 – Select Item Sales' },
+      { image: '/images/step4.png', caption: 'Step 4 – Select Retail Shipping Supplies, set date range, and select Go' },
+      { image: '/images/step5.png', caption: 'Step 5 – Click save icon and export as CSV (comma delimited)' },
+      { image: '/images/step6.png', caption: 'Step 6 – Click Import Sales and select the itemsaves.csv for upload' },
     ],
   },
   {
     id: 'override',
     title: '4. Manual Override',
     body: `Toggle Manual Override to reveal inline editing controls next to every row. Type a corrected quantity and click Save to update that item immediately. You can also Delete an item entirely (with a confirmation prompt) or Blacklist it to prevent it from being re-imported in the future.`,
-    image: '/images/placeholder.svg',
-    imageAlt: 'Manual override screenshot – replace with actual image',
+    image: '/images/override.png',
+    imageAlt: 'Manual override screenshot',
   },
   {
     id: 'blacklist',
     title: '5. Blacklist Management',
     body: `With Manual Override active, click Manage Blacklist to view every currently blacklisted SKU. Use the Remove from Blacklist button to reinstate a SKU – it will be eligible for future CSV imports but will not be added back to inventory automatically.`,
-    image: '/images/placeholder.svg',
-    imageAlt: 'Blacklist management screenshot – replace with actual image',
+    image: '/images/blacklist.png',
+    imageAlt: 'Blacklist management screenshot',
   },
   {
     id: 'analytics',
     title: '6. Analytics',
     body: `Switch to the Analytics view for historical trends, top-selling SKUs, and days-of-supply calculations. Use the parameter controls to adjust thresholds and the search bar to focus on a specific product.`,
-    image: '/images/placeholder.svg',
-    imageAlt: 'Analytics screenshot – replace with actual image',
+    image: '/images/analytics.png',
+    imageAlt: 'Analytics screenshot',
   },
 ];
 
@@ -101,13 +97,13 @@ export default function QRG({ onClose }) {
                     </div>
                   ))}
                 </div>
-              ) : (
+              ) : section.image ? (
                 /* All other sections: single image */
                 <div className="qrgImageWrap">
                   <img src={section.image} alt={section.imageAlt} className="qrgImage" />
                   <p className="qrgImageCaption">{section.imageAlt}</p>
                 </div>
-              )}
+              ) : null}
             </article>
           ))}
         </div>
