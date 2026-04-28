@@ -414,7 +414,7 @@ const visibleDate = lastScan.timestamp
 			  {view === 'inventory' && <LastInvUpdate/> }
         </div>
         <nav className="navMenu" aria-label="Main navigation">
-          <button type="button" className="qrgBtn" onClick={() => setShowQRG(true)}>📖 Guide</button>
+          <button type="button" className="qrgBtn" onClick={() => setShowQRG(true)}>Guide</button>
           <button type="button" className={view === 'analytics' ? 'active' : ''} onClick={() => setView('analytics')}>Analytics</button>
           <button type="button" className={view === 'inventory' ? 'active' : ''} onClick={() => setView('inventory')}>Inventory</button>
         </nav>
