@@ -62,7 +62,7 @@ flowchart TD
 
     H[🔄 Automatically pulls\nnew image & restarts\ncontainers]
 ```
-## Release Notes v1.o
+## Release Notes v1.0
 - Added blacklist feature to prevent SKUs that cannot be reasonably tracked from clogging the table
 - Added QRG
 - Polished visuals
