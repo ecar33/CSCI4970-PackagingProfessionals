@@ -62,7 +62,10 @@ flowchart TD
 
     H[🔄 Automatically pulls\nnew image & restarts\ncontainers]
 ```
-
+## Release Notes v1.0
+- Added blacklist feature to prevent SKUs that cannot be reasonably tracked from clogging the table
+- Added QRG
+- Polished visuals
 ## Release Notes v.04
 - Full deployment at The UPS Store #4166 using Cloudflare Tunnel to facilitate outbound connections
 - Watchtower for automatic updates at the store
