@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './App.css';
 import Analytics from './Analytics';
+import QRG from './QRG';
 
 const STATUS_ORDER = ['Critical', 'Low', 'Healthy'];
 
@@ -75,6 +76,7 @@ function App() {
   const [showOverride, setShowOverride] = useState(false);
   const [importingCsv, setImportingCsv] = useState(false);
   const [showBlacklist, setShowBlacklist] = useState(false);
+  const [showQRG, setShowQRG] = useState(false);
   const [blacklist, setBlacklist] = useState([]);
   const [blacklistLoading, setBlacklistLoading] = useState(false);
   const [unblacklistingSku, setUnblacklistingSku] = useState('');
@@ -412,10 +414,13 @@ const visibleDate = lastScan.timestamp
 			  {view === 'inventory' && <LastInvUpdate/> }
         </div>
         <nav className="navMenu" aria-label="Main navigation">
+          <button type="button" className="qrgBtn" onClick={() => setShowQRG(true)}>📖 Guide</button>
           <button type="button" className={view === 'analytics' ? 'active' : ''} onClick={() => setView('analytics')}>Analytics</button>
           <button type="button" className={view === 'inventory' ? 'active' : ''} onClick={() => setView('inventory')}>Inventory</button>
         </nav>
       </header>
+
+      {showQRG && <QRG onClose={() => setShowQRG(false)} />}
 
       {view === 'analytics' && <Analytics />}
 
