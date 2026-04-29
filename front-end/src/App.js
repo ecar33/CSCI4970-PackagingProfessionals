@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './App.css';
 import Analytics from './Analytics';
+import QRG from './QRG';
 import ConfirmModal from './ConfirmModal';
 import BlacklistModal from './BlacklistModal';
 
@@ -79,15 +80,13 @@ function App() {
   const [showOverride, setShowOverride] = useState(false);
   const [importingCsv, setImportingCsv] = useState(false);
   const [showBlacklist, setShowBlacklist] = useState(false);
+  const [showQRG, setShowQRG] = useState(false);
   const [blacklist, setBlacklist] = useState([]);
   const [blacklistLoading, setBlacklistLoading] = useState(false);
   const [unblacklistingSku, setUnblacklistingSku] = useState('');
   const csvInputRef = React.useRef(null);
   const [modal, setModal] = useState(null);
   const [staleAlert, setStaleAlert] = useState(false);
-
-  console.log('App render — modal:', modal, 'staleAlert:', staleAlert);
-
 
   function confirm(message) {
     return new Promise((resolve) => {
@@ -462,6 +461,7 @@ const visibleDate = lastScan.timestamp
         </div>
         <nav className="navMenu" aria-label="Main navigation">
           <button type="button" className={view === 'inventory' ? 'active' : ''} onClick={() => setView('inventory')}>Inventory</button>
+          <button type="button" onClick={() => setShowQRG(true)}>Guide</button>
           <button type="button" className={view === 'analytics' ? 'active' : ''} onClick={() => setView('analytics')}>Analytics</button>
         </nav>
       </header>
@@ -642,6 +642,9 @@ const visibleDate = lastScan.timestamp
           )}
         </div>
       </div>
+      {showQRG && (
+        <QRG onClose={() => setShowQRG(false)} />
+      )}
       {showBlacklist && (
         <BlacklistModal
           blacklist={blacklist}
