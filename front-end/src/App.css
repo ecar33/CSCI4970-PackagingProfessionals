@@ -52,6 +52,41 @@ body {
   text-transform: uppercase;
 }
 
+.scanBadge {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  border: 1.5px solid transparent;
+}
+
+.scanBadge--ok {
+  background: #d8f3e3;
+  color: #276749;
+  border-color: #9ae6b4;
+}
+
+.scanBadge--warn {
+  background: #ffefcf;
+  color: #92600a;
+  border-color: #fbd38d;
+}
+
+.scanBadge--critical {
+  background: #ffdede;
+  color: #9b2c2c;
+  border-color: #feb2b2;
+}
+
+.scanBadge--unknown {
+  background: #e8ecf0;
+  color: #607086;
+  border-color: #d7dde4;
+}
+
 h1 {
   margin: 0;
   font-size: 2.1rem;
