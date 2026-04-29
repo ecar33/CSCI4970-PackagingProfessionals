@@ -55,17 +55,19 @@ const SECTIONS = [
 
 export default function QRG({ onClose }) {
   const overlayRef = useRef(null);
+  const [lightbox, setLightbox] = React.useState(null);
 
-  // Close on Escape key
   useEffect(() => {
     function handleKey(e) {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        if (lightbox) setLightbox(null);
+        else onClose();
+      }
     }
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
-  }, [onClose]);
+  }, [onClose, lightbox]);
 
-  // Trap focus inside overlay
   function handleBackdropClick(e) {
     if (e.target === overlayRef.current) onClose();
   }
@@ -85,22 +87,20 @@ export default function QRG({ onClose }) {
               <p className="qrgSectionText">{section.body}</p>
 
               {section.steps ? (
-                /* Import section: 6-image step grid */
                 <div className="qrgStepsGrid">
                   {section.steps.map((step, i) => (
                     <div key={i} className="qrgStepCard">
                       <div className="qrgStepNumber">{i + 1}</div>
                       <div className="qrgImageWrap">
-                        <img src={step.image} alt={step.caption} className="qrgImage" />
+                        <img src={step.image} alt={step.caption} className="qrgImage" onClick={() => setLightbox({ src: step.image, alt: step.caption })} />
                         <p className="qrgImageCaption">{step.caption}</p>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : section.image ? (
-                /* All other sections: single image */
                 <div className="qrgImageWrap">
-                  <img src={section.image} alt={section.imageAlt} className="qrgImage" />
+                  <img src={section.image} alt={section.imageAlt} className="qrgImage" onClick={() => setLightbox({ src: section.image, alt: section.imageAlt })} />
                   <p className="qrgImageCaption">{section.imageAlt}</p>
                 </div>
               ) : null}
@@ -112,6 +112,13 @@ export default function QRG({ onClose }) {
           <button type="button" className="qrgCloseBtn" onClick={onClose}>Close Guide</button>
         </div>
       </div>
+
+      {lightbox && (
+        <div className="qrgLightbox" onClick={() => setLightbox(null)}>
+          <button type="button" className="qrgLightboxClose" onClick={() => setLightbox(null)} aria-label="Close image">✕</button>
+          <img src={lightbox.src} alt={lightbox.alt} className="qrgLightboxImg" onClick={(e) => e.stopPropagation()} />
+        </div>
+      )}
     </div>
   );
 }
