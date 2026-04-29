@@ -1,16 +1,18 @@
-﻿"""
+"""
 @brief Analytics module for computing inventory usage rates, time-to-empty
        projections, and optimal reorder timing.
 """
 
-from datetime import datetime, timezone, timedelta
-from databasemake import db, Inventory, InventoryLog
 import logging
+from datetime import datetime, timedelta, timezone
+
+from databasemake import Inventory, InventoryLog, db
 
 logger = logging.getLogger(__name__)
 
 # Default assumed delivery lead time in days (can be overridden per request)
 DEFAULT_LEAD_TIME_DAYS = 5
+
 
 def get_usage_rate(sku: str, days: int = 30) -> dict:
     """
@@ -100,9 +102,12 @@ def get_time_to_empty(sku: str, days: int = 30) -> dict:
     }
 
 
-def get_reorder_recommendation(sku: str, days: int = 30,
-                               lead_time_days: float = DEFAULT_LEAD_TIME_DAYS,
-                               safety_stock_days: float = 3) -> dict:
+def get_reorder_recommendation(
+    sku: str,
+    days: int = 30,
+    lead_time_days: float = DEFAULT_LEAD_TIME_DAYS,
+    safety_stock_days: float = 3,
+) -> dict:
     """
     @brief Recommend when to reorder and how much, using a simple
            reorder-point model:
@@ -149,9 +154,9 @@ def get_reorder_recommendation(sku: str, days: int = 30,
     }
 
 
-def get_all_analytics(days: int = 30,
-                      lead_time_days: float = DEFAULT_LEAD_TIME_DAYS,
-                      safety_stock_days: float = 3) -> list:
+def get_all_analytics(
+    days: int = 30, lead_time_days: float = DEFAULT_LEAD_TIME_DAYS, safety_stock_days: float = 3
+) -> list:
     """
     @brief Return analytics for every item in the inventory table.
 
@@ -167,23 +172,24 @@ def get_all_analytics(days: int = 30,
 
     for item in items:
         tte = get_time_to_empty(item.sku, days)
-        reorder = get_reorder_recommendation(item.sku, days, lead_time_days,
-                                             safety_stock_days)
+        reorder = get_reorder_recommendation(item.sku, days, lead_time_days, safety_stock_days)
         if tte is None or reorder is None:
             continue
 
-        results.append({
-            "sku": item.sku,
-            "description": item.description,
-            "current_quantity": item.item_quantity,
-            "daily_usage_rate": tte["daily_usage_rate"],
-            "days_until_empty": tte["days_until_empty"],
-            "reorder_point": reorder["reorder_point"],
-            "should_reorder": reorder["should_reorder"],
-            "days_until_reorder": reorder["days_until_reorder"],
-            "lead_time_days": lead_time_days,
-            "safety_stock_days": safety_stock_days,
-        })
+        results.append(
+            {
+                "sku": item.sku,
+                "description": item.description,
+                "current_quantity": item.item_quantity,
+                "daily_usage_rate": tte["daily_usage_rate"],
+                "days_until_empty": tte["days_until_empty"],
+                "reorder_point": reorder["reorder_point"],
+                "should_reorder": reorder["should_reorder"],
+                "days_until_reorder": reorder["days_until_reorder"],
+                "lead_time_days": lead_time_days,
+                "safety_stock_days": safety_stock_days,
+            }
+        )
 
     return results
 

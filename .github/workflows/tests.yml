@@ -31,6 +31,13 @@ jobs:
 
       - name: Run tests
         run: pytest
+      
+      - name: Lint with Ruff
+        run: |
+          pip install ruff
+          ruff check .
+          ruff format --check .
+
 
   frontend:
     name: Frontend (Jest)

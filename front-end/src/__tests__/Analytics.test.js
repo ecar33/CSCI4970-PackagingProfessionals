@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react';
 import Analytics from '../Analytics';
 
 // Recharts uses ResizeObserver which doesn't exist in jsdom — stub it out
@@ -182,6 +182,8 @@ test('filters table rows by SKU search', async () => {
     target: { value: '10004' },
   });
 
+  await act(async () => { await new Promise((r) => setTimeout(r, 250)); });
+
   expect(within(table).getByText('10x10x10 Box')).toBeInTheDocument();
   expect(within(table).queryByText('12x12x12 Box')).not.toBeInTheDocument();
 });
@@ -193,6 +195,8 @@ test('filters table rows by description search', async () => {
   fireEvent.change(screen.getByPlaceholderText(/search sku or description/i), {
     target: { value: 'bubble' },
   });
+
+  await act(async () => { await new Promise((r) => setTimeout(r, 250)); });
 
   const table = screen.getByRole('table');
   expect(within(table).getByText('Bubble Mailer')).toBeInTheDocument();
@@ -206,6 +210,8 @@ test('shows empty state when search matches nothing', async () => {
   fireEvent.change(screen.getByPlaceholderText(/search sku or description/i), {
     target: { value: 'zzznomatch' },
   });
+
+  await act(async () => { await new Promise((r) => setTimeout(r, 250)); });
 
   expect(screen.getByText(/no items match/i)).toBeInTheDocument();
 });

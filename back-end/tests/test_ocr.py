@@ -2,12 +2,14 @@
 Unit tests for ocr.parse_boxes_from_text.
 No PDF, Tesseract, or Flask needed — pure logic tests on dimension regex matching and quantity extraction.
 """
-import sys
+
 import os
+import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from ocr import parse_boxes_from_text
+
 
 def test_basic_lowercase_dimensions():
     text = "18x18x18  25"

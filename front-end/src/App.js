@@ -3,6 +3,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import './App.css';
 import Analytics from './Analytics';
 import QRG from './QRG';
+import ConfirmModal from './ConfirmModal';
+import BlacklistModal from './BlacklistModal';
 
 const STATUS_ORDER = ['Critical', 'Low', 'Healthy'];
 
@@ -66,11 +68,13 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All Statuses');
   const [sizeFilter, setSizeFilter] = useState('All Sizes');
   const [sortConfig, setSortConfig] = useState({ key: 'description', direction: 'asc' });
   const [drafts, setDrafts] = useState({});
   const [savingSku, setSavingSku] = useState('');
+  const [savedSku, setSavedSku] = useState('');
   const [deletingSku, setDeletingSku] = useState('');
   const [blacklistingSku, setBlacklistingSku] = useState('');
   const [showOverride, setShowOverride] = useState(false);
@@ -81,6 +85,24 @@ function App() {
   const [blacklistLoading, setBlacklistLoading] = useState(false);
   const [unblacklistingSku, setUnblacklistingSku] = useState('');
   const csvInputRef = React.useRef(null);
+  const [modal, setModal] = useState(null);
+  const [staleAlert, setStaleAlert] = useState(false);
+
+  function confirm(message) {
+    return new Promise((resolve) => {
+      setModal({ message, resolve });
+    });
+  }
+
+  function handleModalConfirm() {
+    modal.resolve(true);
+    setModal(null);
+  }
+
+  function handleModalCancel() {
+    modal.resolve(false);
+    setModal(null);
+  }
 
   useEffect(() => {
     let isMounted = true;
@@ -149,10 +171,22 @@ function App() {
 }, []);
 			  
 
+  useEffect(() => {
+    if (!lastScan.timestamp) return;
+    const age = Date.now() - new Date(lastScan.timestamp).getTime();
+    const oneWeek = 7 * 24 * 60 * 60 * 1000;
+    if (age > oneWeek) setStaleAlert(true);
+  }, [lastScan]);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchTerm), 200);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
+
   const statusOptions = ['All Statuses', ...STATUS_ORDER];
 
   const filteredInventory = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
+    const term = debouncedSearch.trim().toLowerCase();
 
     const normalizedInventory = inventory.map((item) => {
       const status = statusFromQuantity(item.item_quantity);
@@ -190,7 +224,7 @@ function App() {
 
       return compareValues(left[sortConfig.key], right[sortConfig.key], sortConfig.direction);
     });
-  }, [inventory, searchTerm, sizeFilter, sortConfig, statusFilter]);
+  }, [inventory, debouncedSearch, sizeFilter, sortConfig, statusFilter]);
 
 
 const visibleDate = lastScan.timestamp
@@ -257,6 +291,8 @@ const visibleDate = lastScan.timestamp
         ...current,
         [item.sku]: String(updatedItem.item_quantity),
       }));
+      setSavedSku(item.sku);
+      setTimeout(() => setSavedSku(''), 1200);
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -265,7 +301,7 @@ const visibleDate = lastScan.timestamp
   }
 
   async function deleteInventoryItem(item) {
-    if (!window.confirm(`Are you sure you want to delete this item from the table?`)) {
+    if (!await confirm(`Are you sure you want to delete this item from the table?`)) {
       return;
     }
 
@@ -282,21 +318,22 @@ const visibleDate = lastScan.timestamp
         throw new Error(payload.error || `Delete failed with ${response.status}`);
       }
 
-      setInventory((current) => current.filter((entry) => entry.sku !== item.sku));
-      setDrafts((current) => {
-        const next = { ...current };
-        delete next[item.sku];
-        return next;
-      });
+      setTimeout(() => {
+        setInventory((current) => current.filter((entry) => entry.sku !== item.sku));
+        setDrafts((current) => {
+          const next = { ...current };
+          delete next[item.sku];
+          return next;
+        });
+        setDeletingSku('');
+      }, 350);
     } catch (requestError) {
       setError(requestError.message);
-    } finally {
-      setDeletingSku('');
     }
   }
 
   async function blacklistItem(item) {
-    if (!window.confirm(`Are you sure you want to blacklist SKU ${item.sku}? It will be removed from inventory and excluded from all future CSV imports.`)) {
+    if (!await confirm(`Are you sure you want to blacklist SKU ${item.sku}? It will be removed from inventory and excluded from all future CSV imports.`)) {
       return;
     }
 
@@ -306,20 +343,27 @@ const visibleDate = lastScan.timestamp
     try {
       const response = await fetch(`/api/blacklist/${item.sku}`, { method: 'POST' });
 
-      if (!response.ok) {
+      if (!response.ok && response.status !== 409) {
         const payload = await response.json().catch(() => ({}));
         throw new Error(payload.error || `Blacklist failed with ${response.status}`);
       }
 
-      setInventory((current) => current.filter((entry) => entry.sku !== item.sku));
-      setDrafts((current) => {
-        const next = { ...current };
-        delete next[item.sku];
-        return next;
-      });
+      setBlacklist((current) =>
+        current.some((e) => e.sku === item.sku)
+          ? current
+          : [{ sku: item.sku, description: item.description, blacklisted_at: new Date().toISOString() }, ...current]
+      );
+      setTimeout(() => {
+        setInventory((current) => current.filter((entry) => entry.sku !== item.sku));
+        setDrafts((current) => {
+          const next = { ...current };
+          delete next[item.sku];
+          return next;
+        });
+        setBlacklistingSku('');
+      }, 350);
     } catch (requestError) {
       setError(requestError.message);
-    } finally {
       setBlacklistingSku('');
     }
   }
@@ -339,7 +383,7 @@ const visibleDate = lastScan.timestamp
   }
 
   async function unblacklistItem(sku) {
-    if (!window.confirm(`Remove SKU ${sku} from the blacklist? It will be eligible for future CSV imports but will NOT be re-added to inventory automatically.`)) {
+    if (!await confirm(`Remove SKU ${sku} from the blacklist? It will be eligible for future CSV imports but will NOT be re-added to inventory automatically.`)) {
       return;
     }
 
@@ -350,10 +394,12 @@ const visibleDate = lastScan.timestamp
         const payload = await response.json().catch(() => ({}));
         throw new Error(payload.error || `Failed with ${response.status}`);
       }
-      setBlacklist((current) => current.filter((entry) => entry.sku !== sku));
+      setTimeout(() => {
+        setBlacklist((current) => current.filter((entry) => entry.sku !== sku));
+        setUnblacklistingSku('');
+      }, 350);
     } catch (err) {
       setError(err.message);
-    } finally {
       setUnblacklistingSku('');
     }
   }
@@ -414,19 +460,18 @@ const visibleDate = lastScan.timestamp
 			  {view === 'inventory' && <LastInvUpdate/> }
         </div>
         <nav className="navMenu" aria-label="Main navigation">
-          <button type="button" className="qrgBtn" onClick={() => setShowQRG(true)}>Guide</button>
-          <button type="button" className={view === 'analytics' ? 'active' : ''} onClick={() => setView('analytics')}>Analytics</button>
           <button type="button" className={view === 'inventory' ? 'active' : ''} onClick={() => setView('inventory')}>Inventory</button>
+          <button type="button" onClick={() => setShowQRG(true)}>Guide</button>
+          <button type="button" className={view === 'analytics' ? 'active' : ''} onClick={() => setView('analytics')}>Analytics</button>
         </nav>
       </header>
 
-      {showQRG && <QRG onClose={() => setShowQRG(false)} />}
+      <div className="viewContainer">
+      <div className={`viewPanel ${view === 'analytics' ? 'viewActive' : 'viewInactive'}`}>
+        <Analytics />
+      </div>
 
-      {view === 'analytics' && <Analytics />}
-
-
-      {view === 'inventory' && (
-        <>
+      <div className={`viewPanel ${view === 'inventory' ? 'viewActive' : 'viewInactive'}`}>
           <section className="controls" aria-label="Search and filters">
             <input
               type="search"
@@ -466,16 +511,30 @@ const visibleDate = lastScan.timestamp
             />
             <button
               type="button"
-              className="exportBtn"
+              className="exportBtn importBtn"
               onClick={() => csvInputRef.current.click()}
               disabled={importingCsv}
             >
               {importingCsv ? 'Importing…' : 'Import Sales'}
             </button>
+			
+			
+			{showOverride && (
+              <button
+                type="button"
+                className="secondaryBtn"
+                onClick={() => {
+                  loadBlacklist();
+                  setShowBlacklist(true);
+                }}
+              >
+                Manage Blacklist
+              </button>
+            )}
 
             <button
               type="button"
-              className={`exportBtn${showOverride ? ' active' : ''}`}
+              className={`exportBtn overrideBtn${showOverride ? ' active' : ''}`}
               onClick={() => {
                 setShowOverride((v) => {
                   if (v) setShowBlacklist(false);
@@ -486,70 +545,16 @@ const visibleDate = lastScan.timestamp
               {showOverride ? 'Hide Override' : 'Manual Override'}
             </button>
 
-            {showOverride && (
-              <button
-                type="button"
-                className={`exportBtn${showBlacklist ? ' active' : ''}`}
-                onClick={() => {
-                  setShowBlacklist((v) => {
-                    if (!v) loadBlacklist();
-                    return !v;
-                  });
-                }}
-              >
-                {showBlacklist ? 'Hide Blacklist' : 'Manage Blacklist'}
-              </button>
-            )}
+
           </section>
 
           {error && <p className="emptyState" role="alert">{error}</p>}
           {loading && <p className="emptyState">Loading inventory...</p>}
 
-          {showBlacklist && (
-            <section className="tableCard">
-              <h2 style={{ padding: '0.75rem 1rem 0' }}>Blacklisted SKUs</h2>
-              {blacklistLoading && <p className="emptyState">Loading blacklist...</p>}
-              {!blacklistLoading && blacklist.length === 0 && (
-                <p className="emptyState">No SKUs are currently blacklisted.</p>
-              )}
-              {!blacklistLoading && blacklist.length > 0 && (
-                <table>
-                  <thead>
-                    <tr>
-                      <th>SKU</th>
-                      <th>Description</th>
-                      <th>Blacklisted At</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {blacklist.map((entry) => (
-                      <tr key={entry.sku}>
-                        <td>{entry.sku}</td>
-                        <td>{entry.description}</td>
-                        <td>{new Date(entry.blacklisted_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}</td>
-                        <td>
-                          <button
-                            type="button"
-                            className="editBtn"
-                            onClick={() => unblacklistItem(entry.sku)}
-                            disabled={unblacklistingSku === entry.sku}
-                          >
-                            {unblacklistingSku === entry.sku ? 'Removing...' : 'Remove from Blacklist'}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </section>
-          )}
-
           {!loading && (
             <section className="tableCard">
               <table>
-                <thead>
+<thead>
                   <tr>
                     <th>
                       <button type="button" className="sortButton" onClick={() => toggleSort('sku')}>
@@ -576,21 +581,20 @@ const visibleDate = lastScan.timestamp
                         {renderSortLabel('Status', 'status')}
                       </button>
                     </th>
-                    {showOverride && <th>Manual Override</th>}
+                    <th className={`overrideCol${showOverride ? '' : ' overrideHidden'}`}>Manual Override</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody key={`${debouncedSearch}-${statusFilter}-${sizeFilter}`} className="fadeIn">
                   {filteredInventory.map((item) => (
-                    <tr key={item.sku} className={item.status !== 'Healthy' ? 'warningRow' : ''}>
+                    <tr key={item.sku} className={[item.status !== 'Healthy' ? 'warningRow' : '', (deletingSku === item.sku || blacklistingSku === item.sku) ? 'deletingRow' : ''].join(' ').trim()}>
                       <td>{item.sku}</td>
                       <td>{item.description}</td>
-                      <td>{item.item_quantity}</td>
+                      <td className={savedSku === item.sku ? 'savedFlash' : ''}>{item.item_quantity}</td>
                       <td>{item.return_quantity}</td>
                       <td>
                         <span className={`status ${item.status.toLowerCase()}`}>{item.status}</span>
                       </td>
-                      {showOverride && (
-                        <td>
+                      <td className={`overrideCol${showOverride ? '' : ' overrideHidden'}`}>
                           <div className="manualOverride">
                             <input
                               type="number"
@@ -626,7 +630,6 @@ const visibleDate = lastScan.timestamp
                             </button>
                           </div>
                         </td>
-                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -637,7 +640,34 @@ const visibleDate = lastScan.timestamp
               )}
             </section>
           )}
-        </>
+        </div>
+      </div>
+      {showQRG && (
+        <QRG onClose={() => setShowQRG(false)} />
+      )}
+      {showBlacklist && (
+        <BlacklistModal
+          blacklist={blacklist}
+          loading={blacklistLoading}
+          unblacklistingSku={unblacklistingSku}
+          onUnblacklist={unblacklistItem}
+          onClose={() => setShowBlacklist(false)}
+        />
+      )}
+      {modal && (
+        <ConfirmModal
+          message={modal.message}
+          onConfirm={handleModalConfirm}
+          onCancel={handleModalCancel}
+        />
+      )}
+      {staleAlert && (
+        <ConfirmModal
+          alertOnly
+          title="⚠ Sales data may be outdated"
+          message="No order documents have been scanned in over a week. Analytics accuracy depends on recent sales data — consider importing a new sales CSV or scanning an order summary."
+          onConfirm={() => setStaleAlert(false)}
+        />
       )}
     </div>
   );

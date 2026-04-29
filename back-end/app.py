@@ -1,19 +1,23 @@
-from flask import Flask, jsonify, request
 import logging
 import os
+
 from dotenv import load_dotenv
+from flask import Flask, jsonify, request
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
 load_dotenv()
-from ocr import extract_text_from_pdf, process_all_orders, parse_boxes_from_text, process_order_pdf
-from csv_parser import parse_sales_csv
-from watcher import start_watcher, start_count_watcher
-from databasemake import db, init_db, Inventory, InventoryLog, BlacklistedSKU, log_inventory_change
 from analytics import (
-    get_usage_rate,
-    get_time_to_empty,
-    get_reorder_recommendation,
     get_all_analytics,
     get_inventory_history,
+    get_reorder_recommendation,
+    get_time_to_empty,
+    get_usage_rate,
 )
+from csv_parser import parse_sales_csv
+from databasemake import BlacklistedSKU, Inventory, InventoryLog, db, init_db, log_inventory_change
+from ocr import extract_text_from_pdf, process_all_orders, process_order_pdf
+from watcher import start_count_watcher, start_watcher
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -23,19 +27,28 @@ app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:/
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 init_db(app)
 
+# Config Flask-Limit
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["120 per minute"],
+    storage_uri="memory://",
+)
+
 ORDERS_DIR = "/app/orders"
 COUNTS_DIR = "/app/counts"
 # Store OCR results in memory (replace with DB later)
 ocr_results = {}
 
+
 def serialize_inventory_item(item):
     """
-        @brief Serialize an Inventory item to a JSON-friendly dictionary format for API responses.
-    
-        @param item Inventory model instance to serialize
-    
-        @return A dictionary containing the SKU, description, item quantity, and return quantity of the inventory item
-        """
+    @brief Serialize an Inventory item to a JSON-friendly dictionary format for API responses.
+
+    @param item Inventory model instance to serialize
+
+    @return A dictionary containing the SKU, description, item quantity, and return quantity of the inventory item
+    """
     return {
         "sku": item.sku,
         "description": item.description,
@@ -43,12 +56,13 @@ def serialize_inventory_item(item):
         "return_quantity": item.return_quantity,
     }
 
+
 def increment_inventory_from_boxes(boxes):
     """
-        @brief Increment inventory counts based on parsed box data from OCR results. This function takes a list of boxes (each with a size and count), finds the corresponding inventory item by matching the box size in the description, and increments the item quantity accordingly.
-    
-        @param boxes A list of dictionaries, each containing "box_size" (e.g., "18x18x18") and "count" (quantity received) extracted from OCR parsing of order PDFs
-        """
+    @brief Increment inventory counts based on parsed box data from OCR results. This function takes a list of boxes (each with a size and count), finds the corresponding inventory item by matching the box size in the description, and increments the item quantity accordingly.
+
+    @param boxes A list of dictionaries, each containing "box_size" (e.g., "18x18x18") and "count" (quantity received) extracted from OCR parsing of order PDFs
+    """
     with app.app_context():
         for box in boxes:
             box_size = box.get("box_size")
@@ -56,12 +70,16 @@ def increment_inventory_from_boxes(boxes):
             if not box_size or count <= 0:
                 continue
 
-            item = db.session.query(Inventory).filter(
-                Inventory.description.ilike(f"%{box_size}%")
-            ).first()
+            item = (
+                db.session.query(Inventory)
+                .filter(Inventory.description.ilike(f"%{box_size}%"))
+                .first()
+            )
 
             if item is None:
-                logger.warning(f"No inventory item found with '{box_size}' in description — skipping.")
+                logger.warning(
+                    f"No inventory item found with '{box_size}' in description — skipping."
+                )
                 continue
 
             item.item_quantity += count
@@ -76,12 +94,13 @@ def increment_inventory_from_boxes(boxes):
 
         db.session.commit()
 
+
 def decrement_inventory_from_sales(items):
     """
-        @brief Decrement inventory counts based on sales data parsed from an uploaded CSV file. This function takes a list of items (each with SKU, description, sales count, and return count), finds the corresponding inventory item by SKU, and updates the item quantity by decrementing sales and incrementing returns.
+    @brief Decrement inventory counts based on sales data parsed from an uploaded CSV file. This function takes a list of items (each with SKU, description, sales count, and return count), finds the corresponding inventory item by SKU, and updates the item quantity by decrementing sales and incrementing returns.
 
-        @param items A list of dictionaries, each containing "sku", "description", "sales_count", and "return_count" parsed from the uploaded CSV file
-        """
+    @param items A list of dictionaries, each containing "sku", "description", "sales_count", and "return_count" parsed from the uploaded CSV file
+    """
     # Build a set of blacklisted SKUs for fast lookup
     blacklisted = {row.sku for row in db.session.query(BlacklistedSKU).all()}
 
@@ -109,14 +128,16 @@ def decrement_inventory_from_sales(items):
             db.session.add(item)
             if sales_count > 0:
                 log_inventory_change(
-                    sku=sku, change_type="sale",
+                    sku=sku,
+                    change_type="sale",
                     quantity_change=-sales_count,
                     quantity_after=new_qty,
                     note="CSV sale (new item)",
                 )
             if return_count > 0:
                 log_inventory_change(
-                    sku=sku, change_type="return",
+                    sku=sku,
+                    change_type="return",
                     quantity_change=return_count,
                     quantity_after=new_qty,
                     note="CSV return (new item)",
@@ -129,14 +150,16 @@ def decrement_inventory_from_sales(items):
 
         if sales_count > 0:
             log_inventory_change(
-                sku=sku, change_type="sale",
+                sku=sku,
+                change_type="sale",
                 quantity_change=-sales_count,
                 quantity_after=item.item_quantity,
                 note="CSV sale",
             )
         if return_count > 0:
             log_inventory_change(
-                sku=sku, change_type="return",
+                sku=sku,
+                change_type="return",
                 quantity_change=return_count,
                 quantity_after=item.item_quantity,
                 note="CSV return",
@@ -144,64 +167,69 @@ def decrement_inventory_from_sales(items):
 
     db.session.commit()
 
+
 def on_new_order(filename, text, boxes):
     """
-        @brief Callback function to handle new orders detected by the file watcher. This function is called with the filename, extracted text, and parsed box data when a new order PDF is processed. It stores the OCR results in memory and updates the inventory counts based on the parsed box information.
-    
-        @param filename The name of the newly detected order PDF file
-        @param text The full text extracted from the PDF using OCR
-        @param boxes A list of dictionaries containing parsed box information (box size and count) extracted from the OCR text of the order PDF
-        """
+    @brief Callback function to handle new orders detected by the file watcher. This function is called with the filename, extracted text, and parsed box data when a new order PDF is processed. It stores the OCR results in memory and updates the inventory counts based on the parsed box information.
+
+    @param filename The name of the newly detected order PDF file
+    @param text The full text extracted from the PDF using OCR
+    @param boxes A list of dictionaries containing parsed box information (box size and count) extracted from the OCR text of the order PDF
+    """
     ocr_results[filename] = {"text": text, "boxes": boxes}
     logger.info(f"Stored OCR result for {filename} ({len(text)} chars, {len(boxes)} box types)")
     increment_inventory_from_boxes(boxes)
 
+
 def serialize_last_scan(lastlogscan):
     """
-        @brief Function to serialize the inventorylog entry with the highest timestamp
-        
-        @param lastlogscan The row containing the most recent inventory log update that was not manual
-        
-        """
+    @brief Function to serialize the inventorylog entry with the highest timestamp
+
+    @param lastlogscan The row containing the most recent inventory log update that was not manual
+
+    """
     if lastlogscan is None:
-        return { "timestamp" : 'None' }
+        return {"timestamp": "None"}
     else:
         return {
-            "id" : lastlogscan.id,
-            "sku" : lastlogscan.sku,
+            "id": lastlogscan.id,
+            "sku": lastlogscan.sku,
             "change_type": lastlogscan.change_type,
-            "quantity_change" : lastlogscan.quantity_change,
+            "quantity_change": lastlogscan.quantity_change,
             "quantity_after": lastlogscan.quantity_after,
-            "timestamp" : lastlogscan.timestamp,
-            "note" : lastlogscan.note
-        } 
-    
+            "timestamp": lastlogscan.timestamp,
+            "note": lastlogscan.note,
+        }
+
+
 @app.get("/api/health")
 def health():
     """
-        @brief Health check endpoint to verify that the API is running.
+    @brief Health check endpoint to verify that the API is running.
 
-        """
+    """
     return jsonify(status="ok")
 
 
 @app.get("/api/inventory")
 def get_inventory():
     """
-        @brief Endpoint to retrieve the current inventory data. This function queries the database for all inventory items, orders them by description, and returns a JSON list of serialized inventory items for API responses.
-        """
+    @brief Endpoint to retrieve the current inventory data. This function queries the database for all inventory items, orders them by description, and returns a JSON list of serialized inventory items for API responses.
+    """
     items = db.session.query(Inventory).order_by(Inventory.description.asc()).all()
     return jsonify([serialize_inventory_item(item) for item in items])
 
+
 @app.patch("/api/inventory/<sku>")
+@limiter.limit("30 per minute")
 def update_inventory_item(sku):
     """
-        @brief Endpoint to update an inventory item by SKU. This function accepts a JSON payload that can include "item_quantity" to set the quantity (must be a non-negative integer) and "description" to update the item's description (must not be empty). It validates the input, updates the corresponding inventory item in the database, and returns the updated item as JSON.
-        
-        @param sku The SKU of the inventory item to update, provided as a URL parameter
-        
-        @return A JSON representation of the updated inventory item, or an error message if the item is not found or if the input is invalid
-        """
+    @brief Endpoint to update an inventory item by SKU. This function accepts a JSON payload that can include "item_quantity" to set the quantity (must be a non-negative integer) and "description" to update the item's description (must not be empty). It validates the input, updates the corresponding inventory item in the database, and returns the updated item as JSON.
+
+    @param sku The SKU of the inventory item to update, provided as a URL parameter
+
+    @return A JSON representation of the updated inventory item, or an error message if the item is not found or if the input is invalid
+    """
     item = db.session.get(Inventory, sku)
     if item is None:
         return jsonify(error="Inventory item not found"), 404
@@ -214,7 +242,8 @@ def update_inventory_item(sku):
             old_qty = item.item_quantity
             item.item_quantity = new_qty
             log_inventory_change(
-                sku=sku, change_type="manual",
+                sku=sku,
+                change_type="manual",
                 quantity_change=new_qty - old_qty,
                 quantity_after=new_qty,
                 note="Manual edit via API",
@@ -233,21 +262,23 @@ def update_inventory_item(sku):
 
 
 @app.delete("/api/inventory/<sku>")
+@limiter.limit("20 per minute")
 def delete_inventory_item(sku):
     """
-        @brief Endpoint to delete an inventory item by SKU.
+    @brief Endpoint to delete an inventory item by SKU.
 
-        @param sku The SKU of the inventory item to delete, provided as a URL parameter
+    @param sku The SKU of the inventory item to delete, provided as a URL parameter
 
-        @return A JSON success message, or an error message if the item is not found
-        """
+    @return A JSON success message, or an error message if the item is not found
+    """
     item = db.session.get(Inventory, sku)
     if item is None:
         return jsonify(error="Inventory item not found"), 404
 
     db.session.delete(item)
     log_inventory_change(
-        sku=sku, change_type="delete",
+        sku=sku,
+        change_type="delete",
         quantity_change=-item.item_quantity,
         quantity_after=0,
         note="Item deleted via API",
@@ -260,20 +291,27 @@ def delete_inventory_item(sku):
 def get_blacklist():
     """@brief Return all blacklisted SKUs."""
     rows = db.session.query(BlacklistedSKU).order_by(BlacklistedSKU.blacklisted_at.desc()).all()
-    return jsonify([
-        {"sku": r.sku, "description": r.description, "blacklisted_at": r.blacklisted_at.isoformat()}
-        for r in rows
-    ])
+    return jsonify(
+        [
+            {
+                "sku": r.sku,
+                "description": r.description,
+                "blacklisted_at": r.blacklisted_at.isoformat(),
+            }
+            for r in rows
+        ]
+    )
 
 
 @app.post("/api/blacklist/<sku>")
+@limiter.limit("20 per minute")
 def blacklist_sku(sku):
     """
-       @brief Blacklist a SKU and remove it from the inventory table.
-    
-       @param sku The SKU to blacklist, provided as a URL parameter
-       
-       @return A JSON success message, or an error message if the SKU is already blacklisted
+    @brief Blacklist a SKU and remove it from the inventory table.
+
+    @param sku The SKU to blacklist, provided as a URL parameter
+
+    @return A JSON success message, or an error message if the SKU is already blacklisted
     """
     if db.session.get(BlacklistedSKU, sku):
         return jsonify(error="SKU already blacklisted"), 409
@@ -284,7 +322,8 @@ def blacklist_sku(sku):
     if item:
         db.session.delete(item)
         log_inventory_change(
-            sku=sku, change_type="delete",
+            sku=sku,
+            change_type="delete",
             quantity_change=-item.item_quantity,
             quantity_after=0,
             note="Item blacklisted via API",
@@ -296,12 +335,13 @@ def blacklist_sku(sku):
 
 
 @app.delete("/api/blacklist/<sku>")
+@limiter.limit("20 per minute")
 def unblacklist_sku(sku):
     """
-       @brief Remove a SKU from the blacklist (does not restore inventory).
-       @param sku The SKU to remove from the blacklist, provided as a URL parameter
-       @return A JSON success message, or an error message if the SKU is not found in the blacklist
-       """
+    @brief Remove a SKU from the blacklist (does not restore inventory).
+    @param sku The SKU to remove from the blacklist, provided as a URL parameter
+    @return A JSON success message, or an error message if the SKU is not found in the blacklist
+    """
     entry = db.session.get(BlacklistedSKU, sku)
     if entry is None:
         return jsonify(error="SKU not found in blacklist"), 404
@@ -323,13 +363,14 @@ def analytics_all():
     data = get_all_analytics(days, lead_time, safety_stock)
     return jsonify(data)
 
+
 @app.get("/api/analytics/<sku>")
 def analytics_sku(sku):
     """
     @brief Return detailed analytics for a single SKU.
-    
+
     @param sku The SKU to query, provided as a URL parameter
-    
+
     @return A JSON object containing the usage rate, time-to-empty, and reorder recommendation for the specified SKU, or an error message if the SKU is not found
     """
     days = request.args.get("days", 30, type=int)
@@ -343,87 +384,100 @@ def analytics_sku(sku):
     tte = get_time_to_empty(sku, days)
     reorder = get_reorder_recommendation(sku, days, lead_time, safety_stock)
 
-    return jsonify({
-        "usage": usage,
-        "time_to_empty": tte,
-        "reorder": reorder,
-    })
+    return jsonify(
+        {
+            "usage": usage,
+            "time_to_empty": tte,
+            "reorder": reorder,
+        }
+    )
 
 
 @app.get("/api/analytics/<sku>/history")
 def analytics_history(sku):
     """
     @brief Return the inventory change log for a single SKU (for charting).
-    
+
     @param sku The SKU to query, provided as a URL parameter
-    
+
     @return A JSON list of inventory log entries for the specified SKU, where each entry includes timestamp, change_type, quantity_change, quantity_after, and note
     """
     days = request.args.get("days", 30, type=int)
     history = get_inventory_history(sku, days)
     return jsonify(history)
-    
+
+
 @app.get("/api/lastscan")
 def last_scan():
     """
     @brief endpoint to return the most recent timestamp
-    
+
     @return A JSON object sorted so that the most recent timestamp is first
     """
-    
+
     last_update = db.session.query(InventoryLog).order_by(InventoryLog.timestamp.desc()).first()
-    
+
     return jsonify(serialize_last_scan(last_update))
 
+
 @app.get("/api/ocr/orders")
+@limiter.limit("10 per minute")
 def ocr_all_orders():
     """
-        @brief Endpoint to run OCR on all PDF files in the orders directory and return the extracted text for each file as JSON. This function processes all order PDFs by extracting text and parsing box information, returning a dictionary mapping each filename to its extracted text.
-        
-        @return A JSON object where each key is a PDF filename and the value is the extracted text from that PDF file, representing the OCR results for all orders in the directory
-        """
+    @brief Endpoint to run OCR on all PDF files in the orders directory and return the extracted text for each file as JSON. This function processes all order PDFs by extracting text and parsing box information, returning a dictionary mapping each filename to its extracted text.
+
+    @return A JSON object where each key is a PDF filename and the value is the extracted text from that PDF file, representing the OCR results for all orders in the directory
+    """
     results = process_all_orders(ORDERS_DIR)
     return jsonify(results)
 
+
 @app.get("/api/ocr/orders/<filename>")
+@limiter.limit("10 per minute")
 def ocr_single_order(filename):
     """
-        @brief Endpoint to run OCR on a specific PDF file in the orders directory and return the extracted text as JSON. This function checks if the specified file exists, extracts text from it using OCR, and returns the filename along with the extracted text. If the file is not found, it returns a 404 error.
-        
-        @param filename The name of the PDF file to process, provided as a URL parameter
-            
-        @return A JSON object containing the filename and the extracted text from the specified PDF file, or an error message if the file is not found
-        """
+    @brief Endpoint to run OCR on a specific PDF file in the orders directory and return the extracted text as JSON. This function checks if the specified file exists, extracts text from it using OCR, and returns the filename along with the extracted text. If the file is not found, it returns a 404 error.
+
+    @param filename The name of the PDF file to process, provided as a URL parameter
+
+    @return A JSON object containing the filename and the extracted text from the specified PDF file, or an error message if the file is not found
+    """
     import os
+
     filepath = os.path.join(ORDERS_DIR, filename)
     if not os.path.isfile(filepath):
         return jsonify(error="File not found"), 404
     text = extract_text_from_pdf(filepath)
     return jsonify(filename=filename, text=text)
 
+
 @app.get("/api/ocr/boxes/<filename>")
+@limiter.limit("10 per minute")
 def ocr_boxes(filename):
     """
-        @brief Endpoint to run OCR on a specific PDF file in the orders directory, parse box information from the extracted text, and return the results as JSON. This function checks if the specified file exists, processes it to extract text and parse box data, and returns a structured JSON object containing the filename and a list of boxes with their sizes and counts. If the file is not found, it returns a 404 error.
-        
-        @param filename The name of the PDF file to process, provided as a URL parameter
-        
-        @return A JSON object containing the filename and a list of boxes extracted from the specified PDF file, where each box is represented as a dictionary with "box_size" and "count" keys, or an error message if the file is not found
-        """
+    @brief Endpoint to run OCR on a specific PDF file in the orders directory, parse box information from the extracted text, and return the results as JSON. This function checks if the specified file exists, processes it to extract text and parse box data, and returns a structured JSON object containing the filename and a list of boxes with their sizes and counts. If the file is not found, it returns a 404 error.
+
+    @param filename The name of the PDF file to process, provided as a URL parameter
+
+    @return A JSON object containing the filename and a list of boxes extracted from the specified PDF file, where each box is represented as a dictionary with "box_size" and "count" keys, or an error message if the file is not found
+    """
     import os
+
     filepath = os.path.join(ORDERS_DIR, filename)
     if not os.path.isfile(filepath):
         return jsonify(error="File not found"), 404
     result = process_order_pdf(filepath)
     return jsonify(result)
 
+
 @app.post("/api/csv/upload")
+@limiter.limit("10 per minute")
 def upload_csv():
     """
-        @brief Endpoint to upload a sales/inventory CSV file, parse its contents, and update the inventory counts accordingly. This function checks for the presence of a file in the request, validates that it is a CSV, parses the sales data from the file, updates the inventory by decrementing sales and incrementing returns, and returns a JSON response containing the filename and the parsed items. If no file is provided or if the file is not a CSV, it returns an appropriate error message.
-        
-            @return A JSON object containing the filename and a list of parsed items from the uploaded CSV file, where each item includes "sku", "description", "sales_count", and "return_count", or an error message if the file is not provided or is not a CSV
-        """
+    @brief Endpoint to upload a sales/inventory CSV file, parse its contents, and update the inventory counts accordingly. This function checks for the presence of a file in the request, validates that it is a CSV, parses the sales data from the file, updates the inventory by decrementing sales and incrementing returns, and returns a JSON response containing the filename and the parsed items. If no file is provided or if the file is not a CSV, it returns an appropriate error message.
+
+        @return A JSON object containing the filename and a list of parsed items from the uploaded CSV file, where each item includes "sku", "description", "sales_count", and "return_count", or an error message if the file is not provided or is not a CSV
+    """
     if "file" not in request.files:
         return jsonify(error="No file provided"), 400
     file = request.files["file"]
@@ -434,18 +488,17 @@ def upload_csv():
     logger.info(f"Parsed uploaded CSV {file.filename} ({len(items)} items)")
     return jsonify({"file": file.filename, "items": items})
 
+
 def on_new_count_sheet(filename, count):
     """
-        @brief Callback for count sheet watcher. Decrements the 18x18x18 box inventory
-        by the usage count extracted from the daily count sheet.
+    @brief Callback for count sheet watcher. Decrements the 18x18x18 box inventory
+    by the usage count extracted from the daily count sheet.
 
-        @param filename The name of the count sheet PDF
-        @param count The number of 18x18x18 boxes used (from cell H12)
-        """
+    @param filename The name of the count sheet PDF
+    @param count The number of 18x18x18 boxes used (from cell H12)
+    """
     with app.app_context():
-        item = db.session.query(Inventory).filter(
-            Inventory.description.ilike("%18x18x18%")
-        ).first()
+        item = db.session.query(Inventory).filter(Inventory.description.ilike("%18x18x18%")).first()
 
         if item is None:
             logger.warning("No inventory item found matching '18x18x18' — skipping count sheet.")
@@ -461,6 +514,7 @@ def on_new_count_sheet(filename, count):
         )
         db.session.commit()
         logger.info(f"Decremented SKU {item.sku} by {count} from count sheet {filename}")
+
 
 # Start the file watcher at module load time so it runs regardless of
 # how Flask is launched (python app.py, flask run, gunicorn, etc.)
