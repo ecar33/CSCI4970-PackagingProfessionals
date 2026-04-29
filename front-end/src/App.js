@@ -447,9 +447,18 @@ const visibleDate = lastScan.timestamp
     return `${label} / ${sortConfig.direction === 'asc' ? 'Asc' : 'Desc'}`;
   }
   
-   function LastInvUpdate() {
-		return <p className="eyebrow">Last document scanned: {visibleDate}</p>;
-}
+  function LastInvUpdate() {
+    if (!visibleDate) return null;
+    const ageDays = lastScan.timestamp
+      ? (Date.now() - new Date(lastScan.timestamp).getTime()) / (1000 * 60 * 60 * 24)
+      : null;
+    const level = ageDays === null ? 'unknown' : ageDays > 7 ? 'critical' : ageDays > 3 ? 'warn' : 'ok';
+    return (
+      <div className={`scanBadge scanBadge--${level}`}>
+        Last scan: {visibleDate}
+      </div>
+    );
+  }
 
   return (
     <div className="screen">
